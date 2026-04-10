@@ -9,16 +9,16 @@ const ManagementView: React.FC = () => {
     {
       title: 'Relatórios de Vendas',
       description: 'Acompanhe faturamento, ticket médio e performance.',
-      icon: <BarChart3 className="text-blue-400" size={28} />,
+      icon: <BarChart3 color="#60a5fa" size={28} />,
       path: '/reports',
-      color: 'var(--accent-primary)'
+      color: '#3b82f6'
     },
     {
       title: 'Contas a Pagar',
       description: 'Gestão de despesas, vencimentos e fornecedores.',
-      icon: <DollarSign className="text-red-400" size={28} />,
+      icon: <DollarSign color="#f87171" size={28} />,
       path: '/expenses',
-      color: 'var(--danger)'
+      color: '#ef4444'
     }
   ];
 
@@ -68,7 +68,7 @@ const ManagementView: React.FC = () => {
                   {item.description}
                 </p>
               </div>
-              <ChevronRight size={20} className="text-gray-600" />
+              <ChevronRight size={20} color="var(--text-secondary)" />
             </button>
           ))}
         </div>
@@ -85,9 +85,9 @@ const ManagementView: React.FC = () => {
           alignItems: 'flex-start'
         }}>
           <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px' }}>
-            <FileText size={20} className="text-blue-400" />
+            <FileText size={20} color="#60a5fa" />
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: '1.6' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', opacity: 0.9, margin: 0, lineHeight: '1.6' }}>
             Esta área unifica as ferramentas de gestão para facilitar o acesso rápido via celular. No computador, você pode acessar cada menu diretamente pela barra lateral.
           </p>
         </div>

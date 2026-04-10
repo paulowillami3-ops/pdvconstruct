@@ -117,24 +117,24 @@ const UsersView: React.FC = () => {
     <div className="responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '32px' }}>
 
       {/* Header */}
-      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
           <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Equipe & Acessos</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>Gerencie quem tem acesso ao sistema da sua empresa.</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Gerencie quem tem acesso ao sistema da sua empresa.</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
-            <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-muted)' }} size={18} />
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', maxWidth: 'fit-content' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '240px' }}>
+            <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-secondary)' }} size={18} />
             <input 
               className="input-glass" 
-              placeholder="Buscar por nome ou login..." 
-              style={{ paddingLeft: '48px' }}
+              placeholder="Buscar..." 
+              style={{ paddingLeft: '48px', width: '100%' }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowModal(true)}>
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }} onClick={() => setShowModal(true)}>
             <UserPlus size={20} /> Novo Usuário
           </button>
         </div>
@@ -146,14 +146,14 @@ const UsersView: React.FC = () => {
           const count = users.filter(u => u.role === role).length;
           const RoleIcon = ROLE_ICONS[role] || UserIcon;
           return (
-            <div key={role} className="glass-panel" style={{ padding: '24px', borderLeft: `4px solid ${ROLE_COLORS[role]}` }}>
+            <div key={role} className="glass-panel" style={{ padding: '24px', borderLeft: `4px solid ${ROLE_COLORS[role]}`, background: 'rgba(255,255,255,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7, fontSize: '13px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: '700' }}>
                   {ROLE_LABELS[role]}
                 </p>
-                <RoleIcon size={18} color={ROLE_COLORS[role]} opacity={0.7} />
+                <RoleIcon size={18} color={ROLE_COLORS[role]} />
               </div>
-              <p style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: ROLE_COLORS[role] }}>{count}</p>
+              <p style={{ fontSize: '32px', fontWeight: '800', margin: 0, color: '#FFFFFF', textShadow: `0 0 20px ${ROLE_COLORS[role]}40` }}>{count}</p>
             </div>
           );
         })}
@@ -165,10 +165,10 @@ const UsersView: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 10 }}>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>USUÁRIO</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>NOME DE LOGIN</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>NÍVEL DE ACESSO</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>AÇÕES</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>USUÁRIO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>NOME DE LOGIN</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>NÍVEL DE ACESSO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>

@@ -226,10 +226,10 @@ const SettingsView = () => {
                     <Users size={22} color="var(--accent-primary)" />
                   </div>
                   <div style={{ flex: 1, textAlign: 'left' }}>
-                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Gerenciar Equipe</h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Adicione e controle níveis de acesso.</p>
+                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Gerenciar Equipe</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>Adicione e controle níveis de acesso.</p>
                   </div>
-                  <ChevronRight size={18} color="var(--text-muted)" />
+                  <ChevronRight size={18} color="var(--text-secondary)" />
                 </button>
               </div>
             )}
