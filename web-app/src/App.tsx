@@ -119,10 +119,11 @@ const Layout = ({ children, user, onLogout, companyName }: { children: React.Rea
           zIndex: 50
         }}>
           <BottomNavItem to="/pos" icon={<LayoutDashboard size={22} />} label="Venda" />
-          <BottomNavItem to="/deliveries" icon={<Truck size={22} />} label="Logística" />
+          <BottomNavItem to="/customers" icon={<Users size={22} />} label="Clientes" />
           <BottomNavItem to="/inventory" icon={<Package size={22} />} label="Estoque" />
-          {(isAdmin || user.role === 'cashier') && <BottomNavItem to="/settings" icon={<SettingsIcon size={22} />} label="Config" />}
+          <BottomNavItem to="/deliveries" icon={<Truck size={22} />} label="Logística" />
           <BottomNavItem to="/reports" icon={<FileText size={22} />} label="Painel" />
+          {(isAdmin || user.role === 'cashier') && <BottomNavItem to="/settings" icon={<SettingsIcon size={22} />} label="Config" />}
           <button onClick={onLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'transparent', color: 'var(--danger)', padding: '6px' }}>
             <LogOut size={22} />
             <span style={{ fontSize: '9px', fontWeight: '500' }}>Sair</span>
