@@ -63,6 +63,7 @@ export default function POSView() {
       : db.cash_registers.where('status').equals('open').first()
   , [tenantId]) ?? null;
 
+  /* Reservado para uso futuro: Resumo de vendas da sessão no PDV
   const salesThisSession = useLiveQuery(
     () => (tenantId && openRegister)
       ? db.sales.where('tenant_id').equals(tenantId).and(s => s.timestamp >= openRegister.opened_at).toArray()
@@ -75,6 +76,7 @@ export default function POSView() {
     cartao: salesThisSession.filter(s => s.payment_method === 'cartao').reduce((a, b) => a + b.total_amount, 0),
     fiado: salesThisSession.filter(s => s.payment_method === 'fiado').reduce((a, b) => a + b.total_amount, 0),
   };
+  */
 
   // Carregamento unificado para evitar race conditions
   const allSettings = useLiveQuery(() => 
