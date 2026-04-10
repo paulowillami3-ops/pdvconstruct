@@ -116,6 +116,8 @@ export default function ReportsView() {
     const val = parseFloat(initialBalance);
     await db.cash_registers.add({
       id: crypto.randomUUID(),
+      tenant_id: tenantId,
+      synced: false,
       opened_at: Date.now(),
       closed_at: null,
       initial_balance: isNaN(val) ? 0 : val,
