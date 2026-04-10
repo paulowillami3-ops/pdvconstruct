@@ -12,20 +12,18 @@ const SYNC_INTERVAL = 30_000; // 30 segundos
 // Campos que o Supabase recebe como campos locais/de controle — remover antes do upload
 const LOCAL_ONLY_FIELDS = ['synced'];
 
-// Campos que guardam timestamps em milissegundos no IndexedDB mas precisam de
-// formato ISO 8601 no Supabase (tipo timestamptz / date)
-const TIMESTAMP_MS_FIELDS = ['created_at', 'timestamp', 'opened_at', 'closed_at', 'due_date', 'schedule_date'];
+// Campos que guardam timestamps em formato ISO 8601 no Supabase (tipo timestamptz)
+const ISO_DATE_FIELDS = ['created_at', 'due_date'];
+
+// Campos que guardam milissegundos em formato de número inteiro no Supabase (tipo bigint)
+const BIGINT_DATE_FIELDS = ['timestamp', 'opened_at', 'closed_at', 'schedule_date'];
 
 /**
  * Normaliza um item local para envio ao Supabase:
  * - Remove campos de controle local (synced)
- * - Converte timestamps de milissegundos para ISO 8601
- */
-/**
- * Normaliza um item local para envio ao Supabase:
- * - Remove campos de controle local (synced)
- * - Converte timestamps de milissegundos para ISO 8601
- * - Corrige IDs inválidos (ex: customer_id "avulso")
+ * - Converte campos ISO_DATE_FIELDS de milissegundos para ISO 8601
+ * - Mantém BIGINT_DATE_FIELDS como números inteiros
+ * - Corrige IDs inválidos
  */
 function normalizeForSupabase(item: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
@@ -34,8 +32,8 @@ function normalizeForSupabase(item: Record<string, any>): Record<string, any> {
     // Ignora campos só locais
     if (LOCAL_ONLY_FIELDS.includes(key)) continue;
 
-    // Converte timestamps numéricos (ms) para ISO string
-    if (TIMESTAMP_MS_FIELDS.includes(key) && typeof value === 'number' && value > 0) {
+    // Converte timestamps numéricos (ms) para ISO string APENAS se o banco esperar timestamptz
+    if (ISO_DATE_FIELDS.includes(key) && typeof value === 'number' && value > 0) {
       result[key] = new Date(value).toISOString();
     } 
     // Trata IDs de venda avulsa que o Dexie permite mas o Supabase UUID não
@@ -54,13 +52,22 @@ function normalizeForSupabase(item: Record<string, any>): Record<string, any> {
  * Normaliza um item do Supabase para o Dexie:
  * - Adiciona synced: true
  * - Converte strings ISO 8601 para timestamps (ms)
+ * - Mantém bigint como números
  */
 function normalizeFromSupabase(item: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = { ...item, synced: true };
 
-  for (const key of TIMESTAMP_MS_FIELDS) {
+  // Converte apenas os campos que chegaram como ISO do banco para millissegundos (number)
+  for (const key of ISO_DATE_FIELDS) {
     if (item[key] && typeof item[key] === 'string') {
       result[key] = new Date(item[key]).getTime();
+    }
+  }
+
+  // Garante que campos bigint sejam tratados como números (às vezes chegam como string via API se forem muito grandes)
+  for (const key of BIGINT_DATE_FIELDS) {
+    if (item[key] !== undefined && item[key] !== null) {
+      result[key] = Number(item[key]);
     }
   }
 
