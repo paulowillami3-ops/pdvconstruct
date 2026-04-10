@@ -240,6 +240,11 @@ input, textarea {
   .w-full {
     width: 100% !important;
   }
+
+  /* Prevent auto-zoom on mobile (iOS/Android) by ensuring font-size is at least 16px for inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
   
   /* Views and Main Layout wrappers */
   .responsive-view {
