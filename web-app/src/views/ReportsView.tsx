@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../database/db';
-import { Download, CalendarIcon, LayoutList, Lock, Unlock, TrendingUp, Package, AlertCircle, DollarSign, PieChart } from 'lucide-react';
+import { Download, CalendarIcon, LayoutList, Lock, Unlock, TrendingUp, AlertCircle, DollarSign, PieChart } from 'lucide-react';
 
 export default function ReportsView() {
   const [filterMode, setFilterMode] = useState<'register'|'today'|'week'|'month'|'custom'>('register');
@@ -110,25 +110,7 @@ export default function ReportsView() {
     return products.filter(p => p.stock_current <= p.stock_min);
   }, [products]);
 
-  // Top Selling Products
-  const topProducts = useMemo(() => {
-    const counts: Record<string, {qty: number, money: number}> = {};
-    const saleIds = new Set(filteredSales.map(s => s.id));
-    
-    saleItems.forEach(item => {
-      if (saleIds.has(item.sale_id)) {
-        if (!counts[item.product_id]) counts[item.product_id] = {qty: 0, money: 0};
-        counts[item.product_id].qty += item.quantity;
-        counts[item.product_id].money += item.total_item_price;
-      }
-    });
 
-    return Object.entries(counts)
-      .map(([id, data]) => ({ product: products.find(p => p.id === id), ...data }))
-      .filter(p => p.product)
-      .sort((a, b) => b.qty - a.qty)
-      .slice(0, 3);
-  }, [filteredSales, saleItems, products]);
 
   const handleOpenRegister = async () => {
     const val = parseFloat(initialBalance);

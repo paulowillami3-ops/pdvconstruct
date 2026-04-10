@@ -11,7 +11,6 @@ import {
   Lock, 
   AlertTriangle,
   Search,
-  CheckCircle,
   ShieldCheck,
   Truck,
   UserCheck

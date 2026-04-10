@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, type ShipmentLoad, type Delivery } from '../database/db';
-import { Truck, CheckCircle, Package, User, Clock, MapPin } from 'lucide-react';
+import { Truck, CheckCircle, Package, Clock, MapPin } from 'lucide-react';
 
 const DriverView: React.FC = () => {
   const [activeLoads, setActiveLoads] = useState<ShipmentLoad[]>([]);

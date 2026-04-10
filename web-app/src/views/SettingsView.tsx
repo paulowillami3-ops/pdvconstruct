@@ -5,7 +5,6 @@ import { Save, Check, Settings as SettingsIcon, CreditCard, Info, Trash2 } from 
 const SettingsView = () => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   // Prefixo único por empresa — garante isolamento total entre tenants no IndexedDB
-  const tenantPrefix = currentUser.tenant_id ? `${currentUser.tenant_id}:` : '';
 
   const [pixKeys, setPixKeys] = useState<Record<string, string>>({
     cpf: '', cnpj: '', email: '', phone: '', random: ''

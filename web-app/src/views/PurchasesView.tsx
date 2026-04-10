@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Product, type Supplier, generateId } from '../database/db';
-import { Package, Plus, Trash2, Search, Truck, Save, X, Factory, DollarSign, Tag, Hash, Scale } from 'lucide-react';
+import { db, type Product, generateId } from '../database/db';
+import { Plus, Trash2, Search, Truck, Save, X, Factory, Scale } from 'lucide-react';
 
 interface PurchaseItemInput {
   productId: string;

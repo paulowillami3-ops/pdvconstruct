@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Customer, generateId } from '../database/db';
-import { CreditCard, UserPlus, X, Edit2, Trash2, AlertTriangle, User, Search, History } from 'lucide-react';
+import { CreditCard, UserPlus, X, Edit2, Trash2, AlertTriangle, User, Search } from 'lucide-react';
 
 export default function CustomersView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

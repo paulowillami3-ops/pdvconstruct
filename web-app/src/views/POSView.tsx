@@ -149,7 +149,7 @@ export default function POSView() {
         return;
       }
 
-      await db.transaction('rw', db.sales, db.sale_items, db.products, db.customers, db.deliveries, db.stock_logs, async () => {
+      await db.transaction('rw', [db.sales, db.sale_items, db.products, db.customers, db.deliveries, db.stock_logs], async () => {
         const saleId = crypto.randomUUID();
         
         await db.sales.add({
