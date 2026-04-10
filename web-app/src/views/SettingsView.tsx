@@ -111,11 +111,11 @@ const SettingsView = () => {
   }
 
   return (
-    <div className="responsive-view" style={{ flex: 1, overflowY: 'auto', padding: '40px 60px' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="responsive-view" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="responsive-container" style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
         
         {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '48px' }}>
+        <div className="responsive-header" style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '48px' }}>
           <div style={{ 
             padding: '16px', 
             background: 'var(--accent-glow)', 
@@ -123,20 +123,21 @@ const SettingsView = () => {
             border: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
             <SettingsIcon className="text-blue-400" size={32} />
           </div>
           <div>
-            <h1 style={{ fontSize: '32px', margin: 0 }}>Configurações do Sistema</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Gerencie os parâmetros globais do Construx ERP</p>
+            <h1 className="responsive-title" style={{ fontSize: '32px', margin: 0 }}>Configurações</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Gerencie os parâmetros do sistema</p>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '60px' }}>
+        <div className="responsive-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '40px' }}>
           
           {/* Menu Lateral de Configurações */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="hide-on-mobile" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -200,14 +201,14 @@ const SettingsView = () => {
           {/* Conteúdo Principal */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
-            <form onSubmit={handleSave} className="card-glass" style={{ padding: '48px' }}>
+            <form onSubmit={handleSave} className="card-glass responsive-modal" style={{ padding: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
                 <CreditCard size={24} color="var(--accent-primary)" />
                 <h3 style={{ fontSize: '20px', margin: 0 }}>Recebimento PIX</h3>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 1fr', gap: '24px' }}>
+                <div className="responsive-form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                   <div>
                     <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px', fontWeight: '500' }}>
                       Tipo da Chave
@@ -261,15 +262,15 @@ const SettingsView = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="btn-primary"
+                    className="btn-primary w-full"
                     style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '10px', 
-                      minWidth: '240px', 
                       justifyContent: 'center',
                       padding: '16px 32px',
-                      background: saved ? 'var(--success)' : undefined
+                      background: saved ? 'var(--success)' : undefined,
+                      minWidth: '240px'
                     }}
                   >
                     {saving ? (
@@ -291,13 +292,13 @@ const SettingsView = () => {
             </form>
 
             {/* Dica Extra */}
-            <div style={{ 
+            <div className="responsive-container" style={{ 
               background: 'rgba(245, 158, 11, 0.05)', 
               border: '1px solid rgba(245, 158, 11, 0.1)', 
               borderRadius: 'var(--radius-lg)', 
-              padding: '32px',
+              padding: '24px',
               display: 'flex',
-              gap: '24px'
+              gap: '20px'
             }}>
               <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', height: 'fit-content' }}>
                 <Info color="var(--warning)" size={24} />
