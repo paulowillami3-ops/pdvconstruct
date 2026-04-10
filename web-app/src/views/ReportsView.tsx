@@ -4,13 +4,10 @@ import { db } from '../database/db';
 import { Download, CalendarIcon, LayoutList, Lock, Unlock, TrendingUp, AlertCircle, DollarSign, PieChart } from 'lucide-react';
 
 export default function ReportsView() {
-  const [filterMode, setFilterMode] = useState<'register'|'today'|'week'|'month'|'custom'>('register');
+  const [filterMode, setFilterMode] = useState<'today'|'week'|'month'|'custom'>('today');
   const [customStart, setCustomStart] = useState<string>(new Date().toISOString().split('T')[0]);
   const [customEnd, setCustomEnd] = useState<string>(new Date().toISOString().split('T')[0]);
 
-  // Modals
-  const [registerModal, setRegisterModal] = useState<'open'|'close'|null>(null);
-  const [initialBalance, setInitialBalance] = useState('');
 
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const tenantId = currentUser.tenant_id;
@@ -20,7 +17,6 @@ export default function ReportsView() {
   const saleItems = useLiveQuery(() => db.sale_items.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
   const products = useLiveQuery(() => db.products.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
   const expenses = useLiveQuery(() => db.expenses.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
-  const openRegister = useLiveQuery(() => db.cash_registers.where('status').equals('open').and(r => r.tenant_id === tenantId).first(), [tenantId]);
   
   // Apply date filters in memory since array is fast to process client-side
   const filteredSales = useMemo(() => {
@@ -28,14 +24,7 @@ export default function ReportsView() {
     let endMs = Number.MAX_SAFE_INTEGER;
     const now = new Date();
 
-    if (filterMode === 'register') {
-      if (openRegister) {
-        startMs = openRegister.opened_at;
-      } else {
-        startMs = new Date().getTime(); // Se não há caixa, mostra vazio (ou today)
-        endMs = 0;
-      }
-    } else if (filterMode === 'today') {
+    if (filterMode === 'today') {
       now.setHours(0,0,0,0);
       startMs = now.getTime();
     } else if (filterMode === 'week') {
@@ -51,7 +40,7 @@ export default function ReportsView() {
     }
 
     return sales.filter(s => s.timestamp >= startMs && s.timestamp <= endMs);
-  }, [sales, filterMode, customStart, customEnd, openRegister]);
+  }, [sales, filterMode, customStart, customEnd]);
 
   // Calculate summaries
   const totalMoney = filteredSales.filter(s => s.payment_method === 'dinheiro').reduce((a, b) => a + b.total_amount, 0);
@@ -66,10 +55,7 @@ export default function ReportsView() {
     let endMs = Number.MAX_SAFE_INTEGER;
     const now = new Date();
 
-    if (filterMode === 'register') {
-      if (openRegister) startMs = openRegister.opened_at;
-      else { startMs = new Date().getTime(); endMs = 0; }
-    } else if (filterMode === 'today') {
+    if (filterMode === 'today') {
       now.setHours(0,0,0,0);
       startMs = now.getTime();
     } else if (filterMode === 'week') {
@@ -85,7 +71,7 @@ export default function ReportsView() {
     }
 
     return expenses.filter(e => e.due_date >= startMs && e.due_date <= endMs);
-  }, [expenses, filterMode, customStart, customEnd, openRegister]);
+  }, [expenses, filterMode, customStart, customEnd]);
 
   const totalExpenses = filteredExpenses.reduce((a, b) => a + b.amount, 0);
 
@@ -112,33 +98,6 @@ export default function ReportsView() {
 
 
 
-  const handleOpenRegister = async () => {
-    const val = parseFloat(initialBalance);
-    await db.cash_registers.add({
-      id: crypto.randomUUID(),
-      tenant_id: tenantId,
-      synced: false,
-      opened_at: Date.now(),
-      closed_at: null,
-      initial_balance: isNaN(val) ? 0 : val,
-      closed_balance: null,
-      status: 'open',
-      notes: ''
-    });
-    setRegisterModal(null);
-    setInitialBalance('');
-  };
-
-  const handleCloseRegister = async () => {
-    if (!openRegister) return;
-    const finalExpected = openRegister.initial_balance + totalMoney; // Generally Cash drawer logic keeps money
-    await db.cash_registers.update(openRegister.id, {
-      closed_at: Date.now(),
-      closed_balance: finalExpected,
-      status: 'closed'
-    });
-    setRegisterModal(null);
-  };
 
   const handlePrint = () => {
     window.print();
@@ -153,17 +112,6 @@ export default function ReportsView() {
           <p style={{ color: 'var(--text-muted)' }}>Métricas, fluxo do dinheiro e exportação.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {openRegister ? (
-            <button className="btn-primary" onClick={() => setRegisterModal('close')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--danger)' }}>
-              <Lock size={20} />
-              Fechar Caixa
-            </button>
-          ) : (
-            <button className="btn-primary" onClick={() => setRegisterModal('open')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--success)' }}>
-              <Unlock size={20} />
-              Abrir Caixa
-            </button>
-          )}
           <button className="btn-primary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Download size={20} />
             Exportar PDF
@@ -175,7 +123,6 @@ export default function ReportsView() {
       <div className="glass-panel hide-on-print" style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
         <CalendarIcon size={24} color="var(--text-muted)" className="hide-on-mobile" />
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <FilterBtn active={filterMode==='register'} onClick={() => setFilterMode('register')} label="Caixa Atual" />
           <FilterBtn active={filterMode==='today'} onClick={() => setFilterMode('today')} label="Hoje" />
           <FilterBtn active={filterMode==='week'} onClick={() => setFilterMode('week')} label="Nesta Semana" />
           <FilterBtn active={filterMode==='month'} onClick={() => setFilterMode('month')} label="Neste Mês" />
@@ -272,63 +219,6 @@ export default function ReportsView() {
       </div>
       </div>
 
-      {/* Open Register Modal */}
-      {registerModal === 'open' && (
-        <div className="hide-on-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel responsive-modal" style={{ width: '400px', padding: '32px' }}>
-            <h3 style={{ fontSize: '24px', marginBottom: '16px' }}>Abrir Novo Caixa</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Inicie seu turno informando o fundo de troco presente na gaveta fisicamente.</p>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Fundo de Troco (R$)</label>
-            <input autoFocus type="number" className="input-glass" placeholder="Ex: 50.00" value={initialBalance} onChange={e => setInitialBalance(e.target.value)} />
-            
-            <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--surface-light)' }} onClick={() => setRegisterModal(null)}>Cancelar</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--success)' }} onClick={handleOpenRegister}>Iniciar Turno</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Close Register Modal */}
-      {registerModal === 'close' && openRegister && (
-        <div className="hide-on-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel responsive-modal" style={{ width: '400px', padding: '32px' }}>
-            <h3 style={{ fontSize: '24px', marginBottom: '16px', color: 'var(--danger)' }}>Encerrar Turno (Caixa)</h3>
-            <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Fundo Inicial:</span>
-                <span>R$ {openRegister.initial_balance.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Vendido em Dinheiro:</span>
-                <span style={{ color: 'var(--success)' }}>+ R$ {totalMoney.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Vendido em PIX:</span>
-                <span>R$ {totalPix.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Vendido em Cartão:</span>
-                <span>R$ {totalCard.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Vendido no Fiado:</span>
-                <span style={{ color: 'var(--danger)' }}>R$ {totalCredit.toFixed(2)}</span>
-              </div>
-              <div style={{ borderTop: '1px dashed var(--border-color)', margin: '12px 0' }}></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                <span>Dinheiro Esperado na Gaveta:</span>
-                <span>R$ {(openRegister.initial_balance + totalMoney).toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--surface-light)' }} onClick={() => setRegisterModal(null)}>Voltar</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)' }} onClick={handleCloseRegister}>Confirmar Fechamento</button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

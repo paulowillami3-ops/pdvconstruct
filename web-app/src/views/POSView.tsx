@@ -27,7 +27,6 @@ export default function POSView() {
 
   // Register Management States
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  // const [showCloseModal, setShowCloseModal] = useState(false); // Reservado para uso futuro
   const [initialBalance, setInitialBalance] = useState('');
 
   // Receipt Modal State
@@ -57,26 +56,6 @@ export default function POSView() {
       : db.customers.where('status').equals('active').toArray()
   , [tenantId]) || [];
 
-  const openRegister = useLiveQuery(
-    () => tenantId 
-      ? db.cash_registers.where('tenant_id').equals(tenantId).filter(r => r.status === 'open').first()
-      : db.cash_registers.where('status').equals('open').first()
-  , [tenantId]) ?? null;
-
-  /* Reservado para uso futuro: Resumo de vendas da sessão no PDV
-  const salesThisSession = useLiveQuery(
-    () => (tenantId && openRegister)
-      ? db.sales.where('tenant_id').equals(tenantId).and(s => s.timestamp >= openRegister.opened_at).toArray()
-      : []
-  , [tenantId, openRegister?.id]) || [];
-
-  const sessionTotals = {
-    dinheiro: salesThisSession.filter(s => s.payment_method === 'dinheiro').reduce((a, b) => a + b.total_amount, 0),
-    pix: salesThisSession.filter(s => s.payment_method === 'pix').reduce((a, b) => a + b.total_amount, 0),
-    cartao: salesThisSession.filter(s => s.payment_method === 'cartao').reduce((a, b) => a + b.total_amount, 0),
-    fiado: salesThisSession.filter(s => s.payment_method === 'fiado').reduce((a, b) => a + b.total_amount, 0),
-  };
-  */
 
   // Carregamento unificado para evitar race conditions
   const allSettings = useLiveQuery(() => 
@@ -119,11 +98,6 @@ export default function POSView() {
   ).slice(0, 12); // limit for grid
 
   const addToCart = (product: Product) => {
-    if (!openRegister) {
-      setAlertBox({ message: 'Você precisa abrir o caixa antes de adicionar produtos.', isError: true });
-      setShowRegisterModal(true);
-      return;
-    }
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       const newQty = existing ? existing.quantity + 1 : 1;
@@ -159,38 +133,6 @@ export default function POSView() {
 
   const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  const handleOpenRegister = async () => {
-    const val = parseFloat(initialBalance);
-    await db.cash_registers.add({
-      id: crypto.randomUUID(),
-      tenant_id: tenantId,
-      synced: false,
-      opened_at: Date.now(),
-      closed_at: null,
-      initial_balance: isNaN(val) ? 0 : val,
-      closed_balance: null,
-      status: 'open',
-      notes: ''
-    });
-    setShowRegisterModal(false);
-    setInitialBalance('');
-    setAlertBox({ message: 'Caixa aberto com sucesso! Boas vendas.', isError: false });
-  };
-
-  /* Reservado para uso futuro: Fechamento de Caixa no PDV
-  const handleCloseRegister = async () => {
-    if (!openRegister) return;
-    const finalExpected = openRegister.initial_balance + sessionTotals.dinheiro;
-    await db.cash_registers.update(openRegister.id, {
-      closed_at: Date.now(),
-      closed_balance: finalExpected,
-      status: 'closed'
-    });
-    setShowCloseModal(false);
-    setCart([]);
-    setAlertBox({ message: 'Caixa fechado com sucesso!', isError: false });
-  };
-  */
 
   const handleCheckout = async () => {
     if (cart.length === 0) return setAlertBox({message: 'O Carrinho está vazio.', isError: true});
@@ -323,38 +265,6 @@ export default function POSView() {
   return (
     <div className="responsive-container responsive-view" style={{ display: 'flex', height: '100%', padding: '24px', gap: '24px', position: 'relative' }}>
       
-      {openRegister === null && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 50,
-          borderRadius: 'var(--radius-lg)',
-          textAlign: 'center',
-          padding: '20px'
-        }}>
-          <div className="glass-panel" style={{ padding: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', maxWidth: '400px' }}>
-            <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '24px', borderRadius: '50%', color: 'var(--danger)' }}>
-              <Lock size={48} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '24px', marginBottom: '8px' }}>Caixa Fechado</h2>
-              <p style={{ color: 'var(--text-muted)' }}>Você precisa abrir o caixa para começar a vender e gerenciar o catálogo.</p>
-            </div>
-            <button className="btn-primary" style={{ width: '100%', fontSize: '18px', padding: '16px' }} onClick={() => setShowRegisterModal(true)}>
-              Abrir Caixa Agora
-            </button>
-          </div>
-        </div>
-      )}
       
       {/* Left side - Product Catalog */}
       <div className="responsive-catalog-panel hide-on-print" style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -559,39 +469,6 @@ export default function POSView() {
         </div>
       )}
 
-      {showRegisterModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
-          <div className="glass-panel" style={{ width: '380px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--success)' }}>
-                <Lock size={24} />
-                <h3 style={{ fontSize: '20px' }}>Abertura de Caixa</h3>
-             </div>
-             
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Saldo Inicial em Dinheiro (R$)</label>
-                <input 
-                  type="number" 
-                  className="input-glass" 
-                  autoFocus
-                  placeholder="0.00"
-                  value={initialBalance}
-                  onChange={e => setInitialBalance(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleOpenRegister()}
-                />
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Informe o valor que já está no gaveteiro hoje.</p>
-             </div>
-
-             <div style={{ display: 'flex', gap: '12px' }}>
-                <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-secondary)' }} onClick={() => setShowRegisterModal(false)}>
-                  Cancelar
-                </button>
-                <button className="btn-primary" style={{ flex: 1 }} onClick={handleOpenRegister}>
-                  Abrir Caixa
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
 
 
       {receiptData && (
