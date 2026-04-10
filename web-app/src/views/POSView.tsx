@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../database/db';
-import { Search, ShoppingCart, Plus, Minus, Trash2, Info, FileText, Truck, RefreshCcw, MapPin, DollarSign, Lock } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, User, CreditCard, Plus, Minus, ReceiptText, AlertCircle, LayoutGrid, List } from 'lucide-react';
 import { generatePixPayload } from '../utils/pix';
 
 interface CartItem {
@@ -25,9 +25,6 @@ export default function POSView() {
   // Custom Alert Modal
   const [alertBox, setAlertBox] = useState<{message: string, isError: boolean} | null>(null);
 
-  // Register Management States
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [initialBalance, setInitialBalance] = useState('');
 
   // Receipt Modal State
   const [receiptData, setReceiptData] = useState<{

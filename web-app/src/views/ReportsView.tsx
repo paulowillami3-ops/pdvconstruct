@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../database/db';
-import { Download, CalendarIcon, LayoutList, Lock, Unlock, TrendingUp, AlertCircle, DollarSign, PieChart } from 'lucide-react';
+import { Download, CalendarIcon, LayoutList, TrendingUp, AlertCircle, DollarSign, PieChart } from 'lucide-react';
 
 export default function ReportsView() {
   const [filterMode, setFilterMode] = useState<'today'|'week'|'month'|'custom'>('today');
