@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../database/db';
-import { Search, ShoppingCart, Trash2, User, CreditCard, Plus, Minus, ReceiptText, AlertCircle, LayoutGrid, List } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, RefreshCcw, Truck, MapPin, DollarSign, Info, FileText } from 'lucide-react';
 import { generatePixPayload } from '../utils/pix';
 
 interface CartItem {
