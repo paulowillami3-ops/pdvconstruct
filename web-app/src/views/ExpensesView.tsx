@@ -170,7 +170,7 @@ const ExpensesView: React.FC = () => {
       </div>
 
       {/* Tabela de Despesas */}
-      <div className="glass-panel" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="glass-panel mobile-cards-table" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ overflowY: 'auto', flex: 1 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 10 }}>
@@ -188,7 +188,7 @@ const ExpensesView: React.FC = () => {
                 const isOverdue = expense.status === 'pending' && expense.due_date < Date.now();
                 return (
                   <tr key={expense.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                    <td style={{ padding: '16px 24px' }}>
+                    <td data-label="Status" style={{ padding: '16px 24px' }}>
                       <button 
                         onClick={() => toggleStatus(expense)}
                         style={{ 
@@ -209,22 +209,22 @@ const ExpensesView: React.FC = () => {
                         {expense.status === 'paid' ? 'PAGO' : (isOverdue ? 'VENCIDO' : 'PENDENTE')}
                       </button>
                     </td>
-                    <td style={{ padding: '16px 24px', color: 'var(--text-primary)', fontWeight: '600' }}>{expense.description}</td>
-                    <td style={{ padding: '16px 24px' }}>
+                    <td data-label="Descrição" style={{ padding: '16px 24px', color: 'var(--text-primary)', fontWeight: '600' }}>{expense.description}</td>
+                    <td data-label="Categoria" style={{ padding: '16px 24px' }}>
                       <span style={{ fontSize: '12px', background: 'var(--surface-light)', padding: '4px 10px', borderRadius: '4px', color: 'var(--text-secondary)' }}>
                         {CATEGORIES[expense.category] || expense.category}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 24px', color: isOverdue ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                    <td data-label="Vencimento" style={{ padding: '16px 24px', color: isOverdue ? 'var(--danger)' : 'var(--text-secondary)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Calendar size={14} opacity={0.5} />
                         {formatDate(expense.due_date)}
                       </div>
                     </td>
-                    <td style={{ padding: '16px 24px', color: expense.status === 'pending' ? 'var(--danger)' : 'var(--text-primary)', fontWeight: '700', fontSize: '15px' }}>
+                    <td data-label="Valor" style={{ padding: '16px 24px', color: expense.status === 'pending' ? 'var(--danger)' : 'var(--text-primary)', fontWeight: '700', fontSize: '15px' }}>
                       R$ {expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                    <td data-label="Ações" style={{ padding: '16px 24px', textAlign: 'right' }}>
                       <button 
                         onClick={() => deleteExpense(expense.id)}
                         style={{ color: 'var(--text-muted)', padding: '8px', cursor: 'pointer', borderRadius: '50%', background: 'transparent' }}

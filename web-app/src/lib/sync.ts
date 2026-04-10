@@ -50,6 +50,61 @@ function normalizeForSupabase(item: Record<string, any>): Record<string, any> {
   return result;
 }
 
+/**
+ * Normaliza um item do Supabase para o Dexie:
+ * - Adiciona synced: true
+ * - Converte strings ISO 8601 para timestamps (ms)
+ */
+function normalizeFromSupabase(item: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = { ...item, synced: true };
+
+  for (const key of TIMESTAMP_MS_FIELDS) {
+    if (item[key] && typeof item[key] === 'string') {
+      result[key] = new Date(item[key]).getTime();
+    }
+  }
+
+  return result;
+}
+
+async function pullTable(tableName: string, supabaseTable: string, tenantId: string) {
+  try {
+    console.log(`[Sync] Baixando '${tableName}' do Supabase para tenant ${tenantId}...`);
+
+    const { data, error } = await supabase
+      .from(supabaseTable)
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      console.error(`[Sync] Erro ao baixar '${tableName}':`, error);
+      return;
+    }
+
+    if (!data || data.length === 0) return;
+
+    // Filtrar para NÃO sobrescrever itens locais que ainda não foram sincronizados
+    const normalizedData = data.map(normalizeFromSupabase);
+    
+    // Usamos uma transação para garantir integridade
+    await db.transaction('rw', (db as any)[tableName], async () => {
+      for (const item of normalizedData) {
+        const localItem = await (db as any)[tableName].get(item.id);
+        
+        // Só atualiza se o item local não existir OU se o item local já estiver sincronizado
+        // (Isso protege mudanças locais pendentes de serem apagadas pelo servidor)
+        if (!localItem || localItem.synced === true) {
+          await (db as any)[tableName].put(item);
+        }
+      }
+    });
+
+    console.log(`[Sync] '${tableName}' baixada com sucesso (${data.length} itens).`);
+  } catch (err) {
+    console.error(`[Sync] Falha no pull da tabela '${tableName}':`, err);
+  }
+}
+
 async function syncTable(tableName: string, supabaseTable: string, tenantId: string) {
   try {
     // FILTRO CRÍTICO: Pega apenas o que não foi sincronizado E pertence ao tenant logado
@@ -86,45 +141,54 @@ async function syncTable(tableName: string, supabaseTable: string, tenantId: str
 export async function runFullSync() {
   if (!navigator.onLine) return;
 
-  // Garante que o usuário está autenticado antes de sincronizar
   const { data: { session } } = await supabase.auth.getSession();
   const tenantId = session?.user?.app_metadata?.tenant_id;
   
-  if (!session || !tenantId) {
-    console.log('[Sync] Sem sessão ou tenant_id — sincronização cancelada.');
-    return;
+  if (!session || !tenantId) return;
+
+  const tables = [
+    { dexie: 'suppliers',        sb: 'suppliers' },
+    { dexie: 'products',         sb: 'products' },
+    { dexie: 'customers',        sb: 'customers' },
+    { dexie: 'expenses',         sb: 'expenses' },
+    { dexie: 'cash_registers',   sb: 'cash_registers' },
+    { dexie: 'stock_logs',       sb: 'stock_logs' },
+    { dexie: 'sales',            sb: 'sales' },
+    { dexie: 'sale_items',       sb: 'sale_items' },
+    { dexie: 'purchases',        sb: 'purchases' },
+    { dexie: 'purchase_items',   sb: 'purchase_items' },
+    { dexie: 'customer_payments', sb: 'customer_payments' },
+    { dexie: 'deliveries',       sb: 'deliveries' },
+    { dexie: 'returns',          sb: 'returns' },
+    { dexie: 'settings',         sb: 'settings' }
+  ];
+
+  // 1. Primeiro faz o Pull (Baixa do servidor para garantir hidratar novos dispositivos)
+  for (const table of tables) {
+    await pullTable(table.dexie, table.sb, tenantId);
   }
 
-  // Tabelas Base
-  await syncTable('suppliers',       'suppliers',       tenantId);
-  await syncTable('products',        'products',        tenantId);
-  await syncTable('customers',       'customers',       tenantId);
-  
-  // Operacionais
-  await syncTable('expenses',        'expenses',        tenantId);
-  await syncTable('cash_registers',  'cash_registers',  tenantId);
-  await syncTable('stock_logs',      'stock_logs',      tenantId);
-  
-  // Vendas e Financeiro
-  await syncTable('sales',           'sales',           tenantId);
-  await syncTable('sale_items',      'sale_items',      tenantId);
-  await syncTable('purchases',       'purchases',       tenantId);
-  await syncTable('purchase_items',  'purchase_items',  tenantId);
-  await syncTable('customer_payments','customer_payments',tenantId);
-  
-  // Logística e Outros
-  await syncTable('deliveries',      'deliveries',      tenantId);
-  await syncTable('returns',         'returns',         tenantId);
-  await syncTable('settings',        'settings',        tenantId);
+  // 2. Depois faz o Push (Sobe mudanças locais)
+  for (const table of tables) {
+    await syncTable(table.dexie, table.sb, tenantId);
+  }
 }
 
 export function initSyncEngine() {
   console.log('[Sync] Motor de sincronização iniciado.');
 
   runFullSync();
-  setInterval(runFullSync, SYNC_INTERVAL);
+  const intervalId = setInterval(runFullSync, SYNC_INTERVAL);
 
-  window.addEventListener('online', () => {
+  const handleOnline = () => {
     runFullSync();
-  });
+  };
+
+  window.addEventListener('online', handleOnline);
+
+  return () => {
+    clearInterval(intervalId);
+    window.removeEventListener('online', handleOnline);
+    console.log('[Sync] Motor de sincronização parado.');
+  };
 }

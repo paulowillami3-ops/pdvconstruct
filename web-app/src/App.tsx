@@ -282,25 +282,20 @@ export default function App() {
   useEffect(() => {
     seedDatabase().catch(console.error);
 
-    // Inicia o motor de sincronização se houver usuário
-    if (currentUser) {
-      initSyncEngine();
-
-      // Se o nome da empresa não está em cache, busca do Supabase
-      if (!localStorage.getItem('companyName') && currentUser.tenant_id) {
-        supabase
-          .from('profiles')
-          .select('tenants(name)')
-          .eq('id', currentUser.id)
-          .single()
-          .then(({ data }) => {
-            const name = (data as any)?.tenants?.name;
-            if (name) {
-              localStorage.setItem('companyName', name);
-              setCompanyName(name);
-            }
-          });
-      }
+    // Se o nome da empresa não está em cache, busca do Supabase
+    if (currentUser && !localStorage.getItem('companyName') && currentUser.tenant_id) {
+      supabase
+        .from('profiles')
+        .select('tenants(name)')
+        .eq('id', currentUser.id)
+        .single()
+        .then(({ data }) => {
+          const name = (data as any)?.tenants?.name;
+          if (name) {
+            localStorage.setItem('companyName', name);
+            setCompanyName(name);
+          }
+        });
     }
 
     // Listen for auth changes
@@ -315,6 +310,14 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Motor de Sincronização - Gerenciamento de Ciclo de Vida
+  useEffect(() => {
+    if (currentUser) {
+      const cleanup = initSyncEngine();
+      return cleanup;
+    }
+  }, [currentUser?.id]);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);

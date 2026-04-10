@@ -165,7 +165,7 @@ export default function InventoryView() {
       </div>
 
       <div className="glass-panel" style={{ flex: 1, padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div className="responsive-table-wrapper">
+        <div className="responsive-table-wrapper mobile-cards-table">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
               <tr>

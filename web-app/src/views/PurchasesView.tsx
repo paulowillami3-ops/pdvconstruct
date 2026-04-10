@@ -157,7 +157,7 @@ export default function PurchasesView() {
       </header>
 
       <div className="glass-panel" style={{ flex: 1, padding: '0', overflowY: 'auto' }}>
-        <div className="responsive-table-wrapper">
+        <div className="responsive-table-wrapper mobile-cards-table">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
               <tr>
@@ -172,10 +172,10 @@ export default function PurchasesView() {
                 const supplier = suppliers.find(s => s.id === p.supplier_id);
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--surface-glass-light)' }}>
-                    <td style={{ padding: '16px 24px' }}>{new Date(p.timestamp).toLocaleString()}</td>
-                    <td style={{ padding: '16px 24px', fontWeight: 'bold' }}>{supplier?.name || 'Vários'}</td>
-                    <td style={{ padding: '16px 24px', color: 'var(--accent-primary)', fontWeight: 'bold' }}>R$ {p.total_cost.toFixed(2)}</td>
-                    <td style={{ padding: '16px 24px', fontSize: '12px', color: 'var(--text-muted)' }}>{p.id.slice(0, 8).toUpperCase()}</td>
+                    <td data-label="Data/Hora" style={{ padding: '16px 24px' }}>{new Date(p.timestamp).toLocaleString()}</td>
+                    <td data-label="Fornecedor" style={{ padding: '16px 24px', fontWeight: 'bold' }}>{supplier?.name || 'Vários'}</td>
+                    <td data-label="Valor Total" style={{ padding: '16px 24px', color: 'var(--accent-primary)', fontWeight: 'bold' }}>R$ {p.total_cost.toFixed(2)}</td>
+                    <td data-label="Referência" style={{ padding: '16px 24px', fontSize: '12px', color: 'var(--text-muted)' }}>{p.id.slice(0, 8).toUpperCase()}</td>
                   </tr>
                 );
               })}
