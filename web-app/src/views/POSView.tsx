@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../database/db';
-import { Search, ShoppingCart, Plus, Minus, Trash2, Info, FileText, Truck, RefreshCcw, MapPin, DollarSign, Lock } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash2, Info, FileText, Truck, RefreshCcw, MapPin, DollarSign, Lock, Unlock } from 'lucide-react';
 import { generatePixPayload } from '../utils/pix';
 
 interface CartItem {
@@ -25,8 +25,9 @@ export default function POSView() {
   // Custom Alert Modal
   const [alertBox, setAlertBox] = useState<{message: string, isError: boolean} | null>(null);
 
-  // Register Opening States
+  // Register Management States
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const [initialBalance, setInitialBalance] = useState('');
 
   // Receipt Modal State
@@ -61,6 +62,19 @@ export default function POSView() {
       ? db.cash_registers.where('tenant_id').equals(tenantId).filter(r => r.status === 'open').first()
       : db.cash_registers.where('status').equals('open').first()
   , [tenantId]) ?? null;
+
+  const salesThisSession = useLiveQuery(
+    () => (tenantId && openRegister)
+      ? db.sales.where('tenant_id').equals(tenantId).and(s => s.timestamp >= openRegister.opened_at).toArray()
+      : []
+  , [tenantId, openRegister?.id]) || [];
+
+  const sessionTotals = {
+    dinheiro: salesThisSession.filter(s => s.payment_method === 'dinheiro').reduce((a, b) => a + b.total_amount, 0),
+    pix: salesThisSession.filter(s => s.payment_method === 'pix').reduce((a, b) => a + b.total_amount, 0),
+    cartao: salesThisSession.filter(s => s.payment_method === 'cartao').reduce((a, b) => a + b.total_amount, 0),
+    fiado: salesThisSession.filter(s => s.payment_method === 'fiado').reduce((a, b) => a + b.total_amount, 0),
+  };
 
   // Carregamento unificado para evitar race conditions
   const allSettings = useLiveQuery(() => 
@@ -159,6 +173,19 @@ export default function POSView() {
     setShowRegisterModal(false);
     setInitialBalance('');
     setAlertBox({ message: 'Caixa aberto com sucesso! Boas vendas.', isError: false });
+  };
+
+  const handleCloseRegister = async () => {
+    if (!openRegister) return;
+    const finalExpected = openRegister.initial_balance + sessionTotals.dinheiro;
+    await db.cash_registers.update(openRegister.id, {
+      closed_at: Date.now(),
+      closed_balance: finalExpected,
+      status: 'closed'
+    });
+    setShowCloseModal(false);
+    setCart([]);
+    setAlertBox({ message: 'Caixa fechado com sucesso!', isError: false });
   };
 
   const handleCheckout = async () => {
@@ -327,9 +354,21 @@ export default function POSView() {
       
       {/* Left side - Product Catalog */}
       <div className="responsive-catalog-panel hide-on-print" style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <header>
-          <h2 style={{ fontSize: '28px', color: 'var(--text-primary)' }}>Terminal de Vendas</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Busque produtos para adicionar ao carrinho</p>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontSize: '28px', color: 'var(--text-primary)' }}>Terminal de Vendas</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Busque produtos para adicionar ao carrinho</p>
+          </div>
+          {openRegister && (
+            <button 
+              className="btn-primary" 
+              onClick={() => setShowCloseModal(true)}
+              style={{ background: 'var(--danger)', padding: '10px 20px', fontSize: '14px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Unlock size={18} />
+              Fechar Caixa
+            </button>
+          )}
         </header>
 
         <div style={{ position: 'relative' }}>
@@ -556,6 +595,56 @@ export default function POSView() {
                 </button>
                 <button className="btn-primary" style={{ flex: 1 }} onClick={handleOpenRegister}>
                   Abrir Caixa
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {showCloseModal && openRegister && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
+          <div className="glass-panel" style={{ width: '420px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--danger)' }}>
+                <Unlock size={24} />
+                <h3 style={{ fontSize: '20px' }}>Fechamento de Caixa</h3>
+             </div>
+
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Confira os totais de vendas da sessão atual antes de confirmar:</p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Dinheiro</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>R$ {sessionTotals.dinheiro.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>PIX</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>R$ {sessionTotals.pix.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cartão</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>R$ {sessionTotals.cartao.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Fiado</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>R$ {sessionTotals.fiado.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '8px', padding: '16px', background: 'var(--accent-glow)', borderRadius: '12px', border: '1px solid var(--accent-primary)' }}>
+                   <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Saldo Final Esperado (Dinheiro + Inicial)</div>
+                   <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>
+                     R$ {(openRegister.initial_balance + sessionTotals.dinheiro).toFixed(2)}
+                   </div>
+                </div>
+             </div>
+
+             <div style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--bg-secondary)' }} onClick={() => setShowCloseModal(false)}>
+                  Voltar
+                </button>
+                <button className="btn-primary" style={{ flex: 1, background: 'var(--danger)' }} onClick={handleCloseRegister}>
+                  Confirmar Fechamento
                 </button>
              </div>
           </div>
