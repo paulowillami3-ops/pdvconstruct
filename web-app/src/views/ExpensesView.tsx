@@ -251,7 +251,7 @@ const ExpensesView: React.FC = () => {
 
       {/* Modal de Cadastro */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+        <div className="modal-overlay">
           <div className="glass-panel responsive-modal" style={{ width: '460px', padding: '32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '20px', color: 'var(--text-primary)', margin: 0 }}>Lançar Nova Despesa</h3>

@@ -74,6 +74,20 @@ input, textarea {
 }
 
 /* Glassmorphism Utilities */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
 .glass-panel {
   background: var(--surface-glass);
   backdrop-filter: blur(12px);
@@ -265,9 +279,16 @@ input, textarea {
   }
 
   /* Modals */
+  .modal-overlay {
+    align-items: flex-start !important;
+    padding: 20px 10px !important;
+  }
+
   .responsive-modal {
     width: 95% !important;
     padding: 24px !important;
+    margin-top: auto;
+    margin-bottom: auto;
   }
   
   .responsive-form-row {

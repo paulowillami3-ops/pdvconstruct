@@ -222,7 +222,7 @@ export default function CustomersView() {
       </div>
 
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div className="modal-overlay">
           <div className="glass-panel responsive-modal" style={{ width: '420px', padding: '32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h3 style={{ fontSize: '20px', color: 'var(--text-primary)' }}>{editingCustomerId ? 'Editar Cliente' : 'Cadastrar Cliente'}</h3>
@@ -273,7 +273,7 @@ export default function CustomersView() {
       )}
 
       {customerToDelete && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div className="modal-overlay">
           <div className="glass-panel responsive-modal" style={{ width: '380px', padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', textAlign: 'center' }}>
             <AlertTriangle color="var(--danger)" size={48} />
             <h3 style={{ fontSize: '20px', color: 'var(--text-primary)' }}>Remover Cliente?</h3>
@@ -291,7 +291,7 @@ export default function CustomersView() {
       )}
 
       {paymentModal.isOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div className="modal-overlay">
           <div className="glass-panel responsive-modal" style={{ width: '400px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                <h3 style={{ fontSize: '20px', color: 'var(--text-primary)' }}>Registrar Pagamento</h3>
