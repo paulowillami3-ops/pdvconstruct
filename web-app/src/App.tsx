@@ -19,7 +19,8 @@ import DriverView from './views/DriverView';
 import ExpensesView from './views/ExpensesView';
 import UsersView from './views/UsersView';
 import SettingsView from './views/SettingsView';
-import { Settings as SettingsIcon } from 'lucide-react';
+import ManagementView from './views/ManagementView';
+import { Settings as SettingsIcon, BarChart3 } from 'lucide-react';
 
 // Mapa de tradução visual — os valores no banco permanecem em inglês
 const ROLE_LABELS: Record<string, string> = {
@@ -122,7 +123,7 @@ const Layout = ({ children, user, onLogout, companyName }: { children: React.Rea
           <BottomNavItem to="/customers" icon={<Users size={22} />} label="Clientes" />
           <BottomNavItem to="/inventory" icon={<Package size={22} />} label="Estoque" />
           <BottomNavItem to="/deliveries" icon={<Truck size={22} />} label="Logística" />
-          <BottomNavItem to="/reports" icon={<FileText size={22} />} label="Painel" />
+          <BottomNavItem to="/management" icon={<BarChart3 size={22} />} label="Gerencial" />
           {(isAdmin || user.role === 'cashier') && <BottomNavItem to="/settings" icon={<SettingsIcon size={22} />} label="Config" />}
           <button onClick={onLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'transparent', color: 'var(--danger)', padding: '6px' }}>
             <LogOut size={22} />
@@ -359,6 +360,7 @@ export default function App() {
           <Route path="/expenses" element={<ExpensesView />} />
           <Route path="/users" element={<UsersView />} />
           <Route path="/settings" element={<SettingsView />} />
+          <Route path="/management" element={<ManagementView />} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

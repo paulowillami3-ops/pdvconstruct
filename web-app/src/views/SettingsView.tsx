@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../database/db';
-import { Save, Check, Settings as SettingsIcon, CreditCard, Info, Trash2 } from 'lucide-react';
+import { Save, Check, Settings as SettingsIcon, CreditCard, Info, Trash2, Users, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsView = () => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -14,6 +15,7 @@ const SettingsView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -201,6 +203,33 @@ const SettingsView = () => {
           {/* Conteúdo Principal */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
+            {/* Atalho para Usuários - APENAS MOBILE */}
+            <div className="show-on-mobile" style={{ marginBottom: '-16px' }}>
+              <button
+                onClick={() => navigate('/users')}
+                className="glass-panel"
+                style={{
+                  width: '100%',
+                  padding: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  background: 'var(--accent-glow)',
+                  border: '1px solid var(--accent-primary)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
+                  <Users size={22} color="var(--accent-primary)" />
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Gerenciar Equipe</h4>
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Adicione e controle níveis de acesso.</p>
+                </div>
+                <ChevronRight size={18} color="var(--text-muted)" />
+              </button>
+            </div>
+            
             <form onSubmit={handleSave} className="card-glass responsive-modal" style={{ padding: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
                 <CreditCard size={24} color="var(--accent-primary)" />
@@ -234,7 +263,7 @@ const SettingsView = () => {
                       className="input-glass"
                       placeholder={pixKeyType === 'phone' ? '(11) 99999-9999' : 'Sua chave PIX'}
                       value={pixKeys[pixKeyType] || ''}
-                      onChange={(e) => setPixKeys(prev => ({ ...prev, [pixKeyType]: e.target.value }))}
+                      onChange={(e) => setPixKeys((prev: Record<string, string>) => ({ ...prev, [pixKeyType]: e.target.value }))}
                     />
                   </div>
                   <div>
