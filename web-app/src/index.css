@@ -242,6 +242,10 @@ input, textarea {
     display: none !important;
   }
   
+  .show-on-mobile {
+    display: block !important;
+  }
+  
   .show-on-mobile.flex {
     display: flex !important;
   }

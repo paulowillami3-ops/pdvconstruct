@@ -112,6 +112,8 @@ const SettingsView = () => {
     );
   }
 
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
+
   return (
     <div className="responsive-view" style={{ flex: 1, overflowY: 'auto' }}>
       <div className="responsive-container" style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
@@ -203,32 +205,34 @@ const SettingsView = () => {
           {/* Conteúdo Principal */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
-            {/* Atalho para Usuários - APENAS MOBILE */}
-            <div className="show-on-mobile" style={{ marginBottom: '-16px' }}>
-              <button
-                onClick={() => navigate('/users')}
-                className="glass-panel"
-                style={{
-                  width: '100%',
-                  padding: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  background: 'var(--accent-glow)',
-                  border: '1px solid var(--accent-primary)',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
-                  <Users size={22} color="var(--accent-primary)" />
-                </div>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Gerenciar Equipe</h4>
-                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Adicione e controle níveis de acesso.</p>
-                </div>
-                <ChevronRight size={18} color="var(--text-muted)" />
-              </button>
-            </div>
+            {/* Atalho para Usuários - APENAS MOBILE E ADMINS */}
+            {isAdmin && (
+              <div className="show-on-mobile" style={{ marginBottom: '-16px' }}>
+                <button
+                  onClick={() => navigate('/users')}
+                  className="glass-panel"
+                  style={{
+                    width: '100%',
+                    padding: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    background: 'var(--accent-glow)',
+                    border: '1px solid var(--accent-primary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px' }}>
+                    <Users size={22} color="var(--accent-primary)" />
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Gerenciar Equipe</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Adicione e controle níveis de acesso.</p>
+                  </div>
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </button>
+              </div>
+            )}
             
             <form onSubmit={handleSave} className="card-glass responsive-modal" style={{ padding: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
