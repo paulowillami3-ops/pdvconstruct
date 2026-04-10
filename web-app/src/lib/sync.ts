@@ -141,10 +141,26 @@ async function syncTable(tableName: string, supabaseTable: string, tenantId: str
 export async function runFullSync() {
   if (!navigator.onLine) return;
 
-  const { data: { session } } = await supabase.auth.getSession();
-  const tenantId = session?.user?.app_metadata?.tenant_id;
+  // 1. Tenta pegar do Cache Local (Mais confiável se o JWT não tiver claims customizadas)
+  const currentUserStr = localStorage.getItem('currentUser');
+  let tenantId = '';
+
+  if (currentUserStr) {
+    try {
+      const user = JSON.parse(currentUserStr);
+      tenantId = user.tenant_id;
+    } catch (e) {
+      console.error('[Sync] Erro ao ler currentUser do localStorage:', e);
+    }
+  }
+
+  // 2. Fallback para a Sessão do Supabase (JWT app_metadata)
+  if (!tenantId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    tenantId = session?.user?.app_metadata?.tenant_id;
+  }
   
-  if (!session || !tenantId) return;
+  if (!tenantId) return;
 
   const tables = [
     { dexie: 'suppliers',        sb: 'suppliers' },
