@@ -1,0 +1,365 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;800&display=swap');
+
+:root {
+  /* Brand Colors - Deep sophisticated tones */
+  --bg-primary: #020617; /* Very Dark Slate */
+  --bg-secondary: #0F172A; /* Slate 900 */
+  --bg-glass: rgba(15, 23, 42, 0.65);
+  
+  --surface-primary: #1E293B; /* Slate 800 */
+  --surface-glass: rgba(30, 41, 59, 0.5);
+  --surface-glass-light: rgba(255, 255, 255, 0.03);
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-hover: rgba(255, 255, 255, 0.15);
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  --accent-primary: #3B82F6; /* Blue 500 */
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --accent-hover: #2563EB;
+  
+  --success: #10B981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --danger: #EF4444;
+  --danger-glow: rgba(239, 68, 68, 0.2);
+  --warning: #F59E0B;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+button {
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input, textarea {
+  font-family: 'Inter', sans-serif;
+  outline: none;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  box-shadow: 0 4px 14px 0 var(--accent-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 var(--accent-glow);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 4px 14px 0 var(--danger-glow);
+}
+
+.input-glass {
+  background: var(--surface-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.input-glass:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  background: var(--bg-secondary);
+}
+
+/* Custom Scrollbar for Desktop */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color-hover); 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted); 
+}
+
+/* Print Styles */
+.only-on-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  
+  html, body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 80mm !important;
+    overflow-x: hidden !important;
+  }
+  
+  .hide-on-print, aside, nav, button, a, header:not(.only-on-print header) {
+    display: none !important;
+  }
+
+  .only-on-print {
+    display: block !important;
+    width: 75mm !important; 
+    margin: 0 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    padding: 5mm 2mm;
+    box-sizing: border-box !important;
+    color: black !important;
+    text-align: left;
+    background: white !important;
+    word-wrap: break-word;
+  }
+
+  .glass-panel, .report-container, .print-flatten {
+    box-shadow: none !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    background: transparent !important;
+    color: black !important;
+    padding: 0 !important;
+  }
+
+  /* Reset layout constraints to let it flow to pages */
+  main, .report-container, .responsive-view, .responsive-container {
+    overflow: visible !important;
+    height: auto !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+}
+
+/* ========================================================================= */
+/* Responsive Mobile Styles (max-width: 768px)                               */
+/* ========================================================================= */
+
+.show-on-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Utility Hiders */
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  .show-on-mobile.flex {
+    display: flex !important;
+  }
+  
+  /* Views and Main Layout wrappers */
+  .responsive-view {
+    padding: 16px !important;
+    padding-bottom: 96px !important; /* Fix for mobile bottom nav overlap */
+    gap: 16px !important;
+  }
+
+  .responsive-cart-panel, .responsive-catalog-panel {
+    flex: none !important;
+    min-height: min-content;
+  }
+
+  .responsive-container {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow-y: visible !important; /* Allow the body/main to scroll instead of flex panes */
+  }
+
+  /* Modals */
+  .responsive-modal {
+    width: 95% !important;
+    padding: 24px !important;
+  }
+  
+  .responsive-form-row {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Break headers */
+  .responsive-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 16px;
+  }
+
+  .responsive-header > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Tables wrapper for horizontal scroll */
+  .responsive-table-wrapper {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table-wrapper table {
+    min-width: 600px; /* Force table width so it triggers horizontal scroll instead of squishing */
+  }
+
+  /* Transform tables into Cards on Mobile (Inventory & Customers) */
+  .mobile-cards-table table, 
+  .mobile-cards-table tbody, 
+  .mobile-cards-table tr, 
+  .mobile-cards-table td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .mobile-cards-table thead {
+    display: none;
+  }
+  
+  .mobile-cards-table tr {
+    padding: 12px 14px;
+    background: var(--surface-glass-light) !important;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color) !important;
+  }
+  
+  .mobile-cards-table td {
+    padding: 4px 0 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: none !important;
+    text-align: right;
+  }
+  
+  .mobile-cards-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 13px;
+    display: block;
+    text-align: left;
+  }
+
+  /* First td (Title/Name) */
+  .mobile-cards-table td:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-bottom: 8px !important;
+    border-bottom: 1px dashed var(--border-color) !important;
+    margin-bottom: 4px;
+    text-align: left;
+  }
+  
+  .mobile-cards-table td:first-child::before {
+    display: none;
+  }
+
+  /* Last td (Actions) */
+  .mobile-cards-table td:last-child {
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  
+  .mobile-cards-table td:last-child::before {
+    display: none;
+  }
+
+  /* App Shell Main wrapper adjusting for Bottom Nav */
+  .mobile-main-wrapper {
+    /* padding-bottom moved to inner view to fix safari scroll bugs */
+    overflow-y: auto !important;
+  }
+  
+  /* Bottom Navigation Styles */
+  .bottom-nav-glass {
+    background: var(--surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+  }
+}
