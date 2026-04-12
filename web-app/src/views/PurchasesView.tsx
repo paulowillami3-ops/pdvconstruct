@@ -40,7 +40,7 @@ export default function PurchasesView() {
   , [tenantId]) || [];
 
   const products = useLiveQuery(() => 
-    tenantId ? db.products.where('tenant_id').equals(tenantId).toArray() : []
+    tenantId ? db.products.where('tenant_id').equals(tenantId).filter(p => p.status !== 'deleted').toArray() : []
   , [tenantId]) || [];
 
   const purchases = useLiveQuery(() => 
@@ -142,29 +142,30 @@ export default function PurchasesView() {
   return (
     <div className="responsive-view overflow-auto" style={{ padding: '32px', gap: '32px', height: '100%' }}>
       
-      <header className="responsive-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="responsive-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }} className="flex items-center gap-3">
+          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }} className="flex items-center gap-3">
             <Factory size={32} className="text-orange-400" /> Entrada de Mercadorias
           </h2>
-          <p style={{ color: 'var(--text-muted)' }}>Registre compras e gerencie conversão de unidades para o estoque.</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Registre compras e gerencie conversão de unidades para o estoque.</p>
         </div>
         
-        <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Registrar Compra
-        </button>
+        <div className="responsive-tools">
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }} onClick={() => setIsModalOpen(true)}>
+            <Plus size={20} /> Registrar Compra
+          </button>
+        </div>
       </header>
 
       <div className="glass-panel" style={{ flex: 1, padding: '0', overflowY: 'auto' }}>
         <div className="responsive-table-wrapper mobile-cards-table">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-              <tr>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Data/Hora</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Fornecedor</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Valor Total</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Referência</th>
+              <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>DATA/HORA</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>FORNECEDOR</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>VALOR TOTAL</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>REFERÊNCIA</th>
               </tr>
             </thead>
             <tbody>
@@ -204,8 +205,8 @@ export default function PurchasesView() {
                     value={selectedSupplierId}
                     onChange={e => setSelectedSupplierId(e.target.value)}
                   >
-                    <option value="" className="text-black">Selecione o fornecedor...</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id} className="text-black">{s.name}</option>)}
+                    <option value="" style={{ color: 'white' }}>Selecione o fornecedor...</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id} style={{ color: 'white' }}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -343,11 +344,11 @@ export default function PurchasesView() {
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Unidade Venda</label>
                   <select className="input-glass w-full" value={quickCreateData.unitType} onChange={e => setQuickCreateData({...quickCreateData, unitType: e.target.value})}>
-                    <option value="unidade" className="text-black">un</option>
-                    <option value="saco" className="text-black">saco</option>
-                    <option value="kg" className="text-black">kg</option>
-                    <option value="m" className="text-black">m</option>
-                    <option value="m2" className="text-black">m²</option>
+                    <option value="unidade" style={{ color: 'white' }}>un</option>
+                    <option value="saco" style={{ color: 'white' }}>saco</option>
+                    <option value="kg" style={{ color: 'white' }}>kg</option>
+                    <option value="m" style={{ color: 'white' }}>m</option>
+                    <option value="m2" style={{ color: 'white' }}>m²</option>
                   </select>
                 </div>
               </div>

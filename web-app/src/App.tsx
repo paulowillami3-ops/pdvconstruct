@@ -282,7 +282,7 @@ export default function App() {
   );
 
   useEffect(() => {
-    seedDatabase().catch(console.error);
+    seedDatabase(currentUser?.tenant_id).catch(console.error);
 
     // Se o nome da empresa não está em cache, busca do Supabase
     if (currentUser && !localStorage.getItem('companyName') && currentUser.tenant_id) {

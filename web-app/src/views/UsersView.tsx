@@ -33,7 +33,7 @@ const ROLE_COLORS: Record<string, string> = {
   employee: '#6b7280'
 };
 
-const ROLE_ICONS: Record<string, any> = {
+const ROLE_ICONS: Record<string, React.ElementType> = {
   owner: ShieldCheck,
   admin: Shield,
   cashier: UserCheck,
@@ -65,7 +65,7 @@ const UsersView: React.FC = () => {
     name: '',
     username: '',
     password: '',
-    role: 'cashier' as 'admin' | 'cashier' | 'driver' | 'employee'
+    role: 'cashier' as User['role']
   });
 
   const handleAddUser = async (e: React.FormEvent) => {
@@ -94,15 +94,15 @@ const UsersView: React.FC = () => {
         synced: true,
         name: formData.name,
         username: formData.username,
-        passwordHash: btoa(formData.password),
-        role: formData.role as any
+        passwordHash: btoa(formData.password), // Base64 encoding for local search, not for security
+        role: formData.role
       });
 
       setFormData({ name: '', username: '', password: '', role: 'cashier' });
       setShowModal(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Erro ao criar usuário.');
+      setError(err instanceof Error ? err.message : 'Erro ao criar usuário.');
     } finally {
       setLoading(false);
     }
@@ -134,9 +134,11 @@ const UsersView: React.FC = () => {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }} onClick={() => setShowModal(true)}>
-            <UserPlus size={20} /> Novo Usuário
-          </button>
+          <div className="responsive-tools">
+            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }} onClick={() => setShowModal(true)}>
+              <UserPlus size={20} /> Novo Usuário
+            </button>
+          </div>
         </div>
       </header>
 
@@ -287,10 +289,10 @@ const UsersView: React.FC = () => {
 
               <div>
                 <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Cargo / Nível de Acesso</label>
-                <select className="input-glass" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as any })}>
-                  <option value="cashier">Caixa / Vendedor de Balcão</option>
-                  <option value="driver">Entregador / Motorista (App Delivery)</option>
-                  <option value="admin">Administrador Geral (Gerência)</option>
+                <select className="input-glass" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value as User['role'] })}>
+                  <option value="cashier" style={{ color: 'white' }}>Caixa / Vendedor de Balcão</option>
+                  <option value="driver" style={{ color: 'white' }}>Entregador / Motorista (App Delivery)</option>
+                  <option value="admin" style={{ color: 'white' }}>Administrador Geral (Gerência)</option>
                 </select>
               </div>
 

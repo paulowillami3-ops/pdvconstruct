@@ -172,7 +172,7 @@ const CustomersScreen = ({ customers }: { customers: Customer[] }) => {
             />
             <TextInput
               style={styles.input}
-              placeholder="CPF"
+              placeholder="CPF (Opcional)"
               placeholderTextColor="#64748B"
               keyboardType="numeric"
               value={newCpf}

@@ -150,6 +150,11 @@ input, textarea {
   background: var(--bg-secondary);
 }
 
+select option, select optgroup {
+  background-color: #0f172a !important; /* bg-primary */
+  color: #ffffff !important;
+}
+
 /* Custom Scrollbar for Desktop */
 ::-webkit-scrollbar {
   width: 8px;
@@ -225,6 +230,26 @@ input, textarea {
     box-shadow: none !important;
     border: none !important;
     background: transparent !important;
+  }
+}
+
+/* ========================================================================= */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: block !important;
+}
+
+/* Base Responsive Layouts (Mobile) */
+@media (max-width: 768px) {
+  .mobile-only {
+    display: flex !important;
+  }
+  
+  .desktop-only {
+    display: none !important;
   }
 }
 
@@ -400,5 +425,20 @@ input, textarea {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-top: 1px solid var(--border-color);
+  }
+
+  /* Robust tools wrapping */
+  .responsive-tools {
+    display: flex !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .responsive-tools > * {
+    flex: 1 0 auto !important; /* Allow growing but not shrinking below content */
+    min-width: fit-content !important;
+    justify-content: center;
   }
 }

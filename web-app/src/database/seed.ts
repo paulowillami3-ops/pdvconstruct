@@ -1,8 +1,24 @@
 import { db, generateId } from './db';
 
-export const seedDatabase = async () => {
-  const count = await db.products.count();
-  if (count > 0) return; // Already seeded
+export const seedDatabase = async (tenantId?: string) => {
+  const seedKey = tenantId ? `pdv_initial_seed_done_${tenantId}` : 'pdv_initial_seed_done';
+  const isSeeded = localStorage.getItem(seedKey);
+  if (isSeeded) return;
+
+  // Se já houver produtos para este tenant, consideramos que o seed já foi feito
+  if (tenantId) {
+    const count = await db.products.where('tenant_id').equals(tenantId).count();
+    if (count > 0) {
+      localStorage.setItem(seedKey, 'true');
+      return;
+    }
+  } else {
+    const count = await db.products.count();
+    if (count > 0) {
+      localStorage.setItem(seedKey, 'true');
+      return;
+    }
+  }
 
   console.log('Seeding Database...');
 
@@ -13,6 +29,7 @@ export const seedDatabase = async () => {
   await db.products.bulkAdd([
     {
       id: cimentoId,
+      tenant_id: tenantId,
       name: 'Cimento Votorantim 50kg',
       category: 'Construção Base',
       barcode: '789123456001',
@@ -27,6 +44,7 @@ export const seedDatabase = async () => {
     },
     {
       id: areiaId,
+      tenant_id: tenantId,
       name: 'Areia Fina',
       category: 'Construção Base',
       barcode: 'AREIA500',
@@ -41,6 +59,7 @@ export const seedDatabase = async () => {
     },
     {
       id: tijoloId,
+      tenant_id: tenantId,
       name: 'Tijolo Baiano 8 Furos',
       category: 'Alvenaria',
       barcode: 'TIJ8F',
@@ -58,34 +77,38 @@ export const seedDatabase = async () => {
   await db.customers.bulkAdd([
     {
       id: generateId(),
+      tenant_id: tenantId,
       name: 'João Silva Engenharia',
       cpf: '123.456.789-00',
       phone: '(11) 98765-4321',
-      credit_limit: 5000,
       balance_owed: 1250.50,
       status: 'active',
       created_at: Date.now()
     },
     {
       id: generateId(),
+      tenant_id: tenantId,
       name: 'Maria Reforma Mestre',
       cpf: '987.654.321-11',
       phone: '(11) 91234-5678',
-      credit_limit: 1000,
       balance_owed: 0,
       status: 'active',
       created_at: Date.now()
     }
   ]);
 
-  const userCount = await db.users.count();
-  if (userCount === 0) {
-    await db.users.add({
-      id: generateId(),
-      name: 'Administrador',
-      username: 'admin',
-      passwordHash: btoa('123456'), // Simple local encoding for offline offline demo
-      role: 'admin'
-    });
+  if (!tenantId) {
+    const userCount = await db.users.count();
+    if (userCount === 0) {
+      await db.users.add({
+        id: generateId(),
+        name: 'Administrador',
+        username: 'admin',
+        passwordHash: btoa('123456'), // Simple local encoding for offline offline demo
+        role: 'admin'
+      });
+    }
   }
+
+  localStorage.setItem(seedKey, 'true');
 };

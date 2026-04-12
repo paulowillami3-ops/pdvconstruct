@@ -66,6 +66,7 @@ export default function SuppliersView() {
       } else {
          await db.suppliers.add({
             id: crypto.randomUUID(),
+            tenant_id: tenantId,
             name,
             cnpj,
             phone,
@@ -85,24 +86,25 @@ export default function SuppliersView() {
   return (
     <div className="responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '32px' }}>
       
-      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }}>Gestão de Fornecedores</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Controle de distribuidores, atacadistas e fábricas.</p>
+          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Gestão de Fornecedores</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Controle de distribuidores, atacadistas e fábricas.</p>
         </div>
         
-        <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
-          <Truck size={20} />
-          Novo Fornecedor
-        </button>
+        <div className="responsive-tools">
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }} onClick={openNewModal}>
+            <Truck size={20} /> Novo Fornecedor
+          </button>
+        </div>
       </header>
 
       <div style={{ position: 'relative' }}>
-        <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-muted)' }} size={20} />
+        <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-secondary)' }} size={20} />
         <input 
           type="text" 
           className="input-glass" 
-          style={{ paddingLeft: '48px' }}
+          style={{ paddingLeft: '48px', width: '100%' }}
           placeholder="Pesquisar por nome, CNPJ ou telefone..." 
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -113,11 +115,11 @@ export default function SuppliersView() {
         <div className="responsive-table-wrapper mobile-cards-table">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-              <tr>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Fornecedor</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>CNPJ</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Contato Oficial</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>Ações</th>
+              <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>FORNECEDOR</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>CNPJ</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>CONTATO OFICIAL</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>

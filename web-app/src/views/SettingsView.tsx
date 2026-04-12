@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../database/db';
-import { Save, Check, Settings as SettingsIcon, CreditCard, Info, Trash2, Users, ChevronRight } from 'lucide-react';
+import { Save, Check, Settings as SettingsIcon, CreditCard, Info, Trash2, Users, ChevronRight, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const SettingsView = () => {
@@ -17,15 +17,11 @@ const SettingsView = () => {
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => { loadSettings(); }, []);
-
-  // Helper: lê uma configuração isolada por tenant (Sem fallback legado)
-  const getSetting = async (key: string) => {
+  const getSetting = useCallback(async (key: string) => {
     if (!currentUser.tenant_id) return null;
     return db.settings.get(`${currentUser.tenant_id}:${key}`);
-  };
+  }, [currentUser.tenant_id]);
 
-  // Helper: salva uma configuração isolada por tenant
   const putSetting = async (key: string, value: string) => {
     if (!currentUser.tenant_id) return;
     return db.settings.put({ 
@@ -36,7 +32,7 @@ const SettingsView = () => {
     });
   };
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const typeSetting = await getSetting('pix_key_type');
       const activeType = typeSetting?.value || 'cpf';
@@ -57,7 +53,11 @@ const SettingsView = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getSetting]);
+
+  useEffect(() => { 
+    loadSettings(); 
+  }, [loadSettings]);
 
   const handleClearCache = async () => {
     if (!confirm('ATENÇÃO: Isso apagará todos os dados locais e forçará uma nova sincronização com a nuvem. Use apenas se notar inconsistências de dados. Deseja continuar?')) return;
@@ -118,25 +118,43 @@ const SettingsView = () => {
     <div className="responsive-view" style={{ flex: 1, overflowY: 'auto' }}>
       <div className="responsive-container" style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
         
-        {/* Header Section */}
-        <div className="responsive-header" style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '48px' }}>
-          <div style={{ 
-            padding: '16px', 
-            background: 'var(--accent-glow)', 
-            borderRadius: '20px', 
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <SettingsIcon className="text-blue-400" size={32} />
+        <header className="responsive-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ 
+              padding: '16px', 
+              background: 'var(--accent-glow)', 
+              borderRadius: '20px', 
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <SettingsIcon className="text-blue-400" size={32} />
+            </div>
+            <div>
+              <h1 className="responsive-title" style={{ fontSize: '32px', margin: 0, color: 'var(--text-primary)' }}>Configurações</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '16px', marginTop: '4px' }}>Gerencie os parâmetros do sistema</p>
+            </div>
           </div>
-          <div>
-            <h1 className="responsive-title" style={{ fontSize: '32px', margin: 0 }}>Configurações</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginTop: '4px' }}>Gerencie os parâmetros do sistema</p>
+
+          <div className="responsive-tools">
+            <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+              <FileText size={20} /> Backup
+            </button>
+            
+            {/* Mobile-only Link to User Management (Only for Admins) */}
+            {isAdmin && (
+              <button 
+                className="btn-primary mobile-only" 
+                style={{ display: 'none', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }}
+                onClick={() => window.location.hash = '#/users'}
+              >
+                <Users size={20} /> Gerenciar Usuários
+              </button>
+            )}
           </div>
-        </div>
+        </header>
 
         <div className="responsive-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '40px' }}>
           
@@ -250,12 +268,13 @@ const SettingsView = () => {
                       className="input-glass"
                       value={pixKeyType}
                       onChange={(e) => setPixKeyType(e.target.value)}
+                      style={{ color: 'white' }}
                     >
-                      <option value="cpf">CPF</option>
-                      <option value="cnpj">CNPJ</option>
-                      <option value="email">E-mail</option>
-                      <option value="phone">Telefone (Celular)</option>
-                      <option value="random">Chave Aleatória</option>
+                      <option value="cpf" style={{ color: 'white' }}>CPF</option>
+                      <option value="cnpj" style={{ color: 'white' }}>CNPJ</option>
+                      <option value="email" style={{ color: 'white' }}>E-mail</option>
+                      <option value="phone" style={{ color: 'white' }}>Telefone (Celular)</option>
+                      <option value="random" style={{ color: 'white' }}>Chave Aleatória</option>
                     </select>
                   </div>
                   <div>

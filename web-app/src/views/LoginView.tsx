@@ -115,7 +115,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           name: profile.full_name,
           username: profile.username,
           passwordHash: btoa(password),
-          role: profile.role as any,
+          role: profile.role,
           synced: true
         };
 
@@ -131,9 +131,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLoginSuccess(sessionUser);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Ocorreu um erro ao processar a requisição.');
+      setError(err instanceof Error ? err.message : 'Ocorreu um erro ao processar a requisição.');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Customer, generateId } from '../database/db';
-import { CreditCard, UserPlus, X, Edit2, Trash2, AlertTriangle, User, Search } from 'lucide-react';
+import { CreditCard, UserPlus, X, Edit2, Trash2, AlertTriangle, User, Search, History, Clock } from 'lucide-react';
 
 export default function CustomersView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -11,12 +11,17 @@ export default function CustomersView() {
   const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
   const [phone, setPhone] = useState('');
-  const [limit, setLimit] = useState('');
 
   // Payment Modal State
   const [paymentModal, setPaymentModal] = useState<{isOpen: boolean, customerId: string, balance: number}>({isOpen: false, customerId: '', balance: 0});
   const [paymentAmount, setPaymentAmount] = useState('');
   const [search, setSearch] = useState('');
+  
+  // History Modal State
+  const [historyModal, setHistoryModal] = useState<{isOpen: boolean, customerId: string, customerName: string}>({isOpen: false, customerId: '', customerName: ''});
+  const [customerSales, setCustomerSales] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const currentUserJson = localStorage.getItem('currentUser');
   const currentUser = currentUserJson ? JSON.parse(currentUserJson) : null;
   const tenantId = currentUser?.tenant_id;
@@ -33,7 +38,7 @@ export default function CustomersView() {
 
   const openNewModal = () => {
     setEditingCustomerId(null);
-    setName(''); setCpf(''); setPhone(''); setLimit('');
+    setName(''); setCpf(''); setPhone('');
     setIsAddModalOpen(true);
   };
 
@@ -42,7 +47,6 @@ export default function CustomersView() {
     setName(c.name);
     setCpf(c.cpf);
     setPhone(c.phone);
-    setLimit(c.credit_limit.toString());
     setIsAddModalOpen(true);
   };
 
@@ -67,7 +71,6 @@ export default function CustomersView() {
             name,
             cpf,
             phone,
-            credit_limit: parseFloat(limit) || 0,
             synced: false
          });
       } else {
@@ -78,7 +81,7 @@ export default function CustomersView() {
             name,
             cpf,
             phone,
-            credit_limit: parseFloat(limit) || 0,
+            credit_limit: 999999,
             balance_owed: 0,
             status: 'active',
             created_at: Date.now()
@@ -86,7 +89,7 @@ export default function CustomersView() {
       }
       setIsAddModalOpen(false);
       setEditingCustomerId(null);
-      setName(''); setCpf(''); setPhone(''); setLimit('');
+      setName(''); setCpf(''); setPhone('');
     } catch (err) {
       console.error(err);
       alert('Erro ao processar contato.');
@@ -98,18 +101,16 @@ export default function CustomersView() {
     if (!isNaN(amount) && amount > 0) {
       try {
         await db.transaction('rw', db.customers, db.customer_payments, async () => {
-          // 1. Record payment
           await db.customer_payments.add({
             id: generateId(),
             tenant_id: tenantId,
             synced: false,
             customer_id: paymentModal.customerId,
             amount: amount,
-            method: 'dinheiro', // Default or could be improved later
+            method: 'dinheiro',
             timestamp: Date.now()
           });
 
-          // 2. Update balance
           const customer = await db.customers.get(paymentModal.customerId);
           if (customer) {
             await db.customers.update(paymentModal.customerId, {
@@ -131,24 +132,25 @@ export default function CustomersView() {
   return (
     <div className="responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '32px' }}>
       
-      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }}>Gestão de Clientes</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Controle de fiados, limites e crediário da loja.</p>
+          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Gestão de Clientes</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Controle de fiados e histórico de compras.</p>
         </div>
         
-        <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
-          <UserPlus size={20} />
-          Novo Cliente
-        </button>
+        <div className="responsive-tools">
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }} onClick={openNewModal}>
+            <UserPlus size={20} /> Novo Cliente
+          </button>
+        </div>
       </header>
 
       <div style={{ position: 'relative' }}>
-        <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-muted)' }} size={20} />
+        <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-secondary)' }} size={20} />
         <input 
           type="text" 
           className="input-glass" 
-          style={{ paddingLeft: '48px' }}
+          style={{ paddingLeft: '48px', width: '100%' }}
           placeholder="Pesquisar por nome, CPF ou telefone..." 
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -160,20 +162,18 @@ export default function CustomersView() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
               <tr>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Cliente & Contato</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Limite Aprovado</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Saldo Devedor / Fiado</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', textAlign: 'right' }}>Ações</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>CLIENTE & CONTATO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px' }}>SALDO DEVEDOR (FIADO)</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomers.map((c, idx) => (
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--surface-glass-light)' }}>
                   <td data-label="Cliente" style={{ padding: '16px 24px' }}>
-                    <div style={{ fontWeight: 'bold' }}>{c.name}</div>
+                    <div style={{ fontWeight: 'bold', color: 'white' }}>{c.name}</div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{c.cpf} • {c.phone}</div>
                   </td>
-                  <td data-label="Limite" style={{ padding: '16px 24px', color: 'var(--text-muted)' }}>R$ {c.credit_limit.toFixed(2)}</td>
                   <td data-label="Saldo / Fiado" style={{ padding: '16px 24px' }}>
                     <div style={{ color: c.balance_owed > 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 'bold', fontSize: '16px' }}>
                       R$ {c.balance_owed.toFixed(2)}
@@ -181,6 +181,27 @@ export default function CustomersView() {
                   </td>
                   <td data-label="Ações" style={{ padding: '16px 24px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        onClick={async () => {
+                           setHistoryModal({ isOpen: true, customerId: c.id, customerName: c.name });
+                           setLoadingHistory(true);
+                           const sales = await db.sales.where('customer_id').equals(c.id).reverse().sortBy('timestamp');
+                           const salesWithItems = await Promise.all(sales.map(async s => {
+                             const items = await db.sale_items.where('sale_id').equals(s.id).toArray();
+                             const itemsWithNames = await Promise.all(items.map(async it => {
+                               const prod = await db.products.get(it.product_id);
+                               return { ...it, productName: prod?.name || 'Produto Removido' };
+                             }));
+                             return { ...s, items: itemsWithNames };
+                           }));
+                           setCustomerSales(salesWithItems);
+                           setLoadingHistory(false);
+                        }}
+                        title="Ver Histórico de Compras"
+                        className="btn-icon"
+                        style={{ background: 'var(--surface-light)', borderRadius: 'var(--radius-sm)', padding: '8px', color: 'var(--accent-primary)', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                        <Clock size={18} />
+                      </button>
                       <button 
                         disabled={c.balance_owed <= 0}
                         onClick={() => setPaymentModal({ isOpen: true, customerId: c.id, balance: c.balance_owed })}
@@ -211,7 +232,7 @@ export default function CustomersView() {
               ))}
               {filteredCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={3} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     Nenhum cliente encontrado.
                   </td>
                 </tr>
@@ -220,6 +241,47 @@ export default function CustomersView() {
           </table>
         </div>
       </div>
+
+      {/* History Modal */}
+      {historyModal.isOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="glass-panel responsive-modal" style={{ width: '600px', maxWidth: '95vw', maxHeight: '80vh', padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <h3 style={{ fontSize: '22px', color: 'var(--text-primary)' }}>Histórico: {historyModal.customerName}</h3>
+               <X style={{ cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => setHistoryModal({isOpen: false, customerId: '', customerName: ''})} />
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '8px' }}>
+              {loadingHistory ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Carregando histórico...</div>
+              ) : customerSales.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Nenhuma compra encontrada para este cliente.</div>
+              ) : (
+                customerSales.map(sale => (
+                  <div key={sale.id} className="glass-panel" style={{ padding: '16px', background: 'var(--surface-glass-light)', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+                        {new Date(sale.timestamp).toLocaleString('pt-BR')}
+                      </div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+                        R$ {sale.total_amount.toFixed(2)} ({sale.payment_method.toUpperCase()})
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {sale.items.map((item: any) => (
+                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                          <span>{item.quantity}x {item.productName}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>R$ {item.total_item_price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAddModalOpen && (
         <div className="modal-overlay">
@@ -235,7 +297,6 @@ export default function CustomersView() {
             </div>
             
             <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
               <div>
                 <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Nome Completo</label>
                 <div style={{ position: 'relative' }}>
@@ -255,18 +316,9 @@ export default function CustomersView() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Limite de Crédito Aprovado (R$)</label>
-                <div style={{ position: 'relative' }}>
-                  <CreditCard style={{ position: 'absolute', top: '14px', left: '16px', color: 'var(--accent-primary)' }} size={20} />
-                  <input required min="0" step="0.01" type="number" className="input-glass" style={{ paddingLeft: '48px', color: 'var(--accent-primary)', fontWeight: 'bold' }} placeholder="1000.00" value={limit} onChange={e => setLimit(e.target.value)} />
-                </div>
-              </div>
-
               <button className="btn-primary" type="submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', marginTop: '16px', fontSize: '16px' }}>
                 {editingCustomerId ? 'Salvar Edição' : 'Concluir Cadastro'}
               </button>
-
             </form>
           </div>
         </div>

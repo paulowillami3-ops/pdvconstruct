@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../database/db';
-import { Download, CalendarIcon, LayoutList, TrendingUp, AlertCircle, DollarSign, PieChart } from 'lucide-react';
+import { Download, Calendar as CalendarIcon, LayoutList, TrendingUp, AlertCircle, DollarSign, PieChart, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function ReportsView() {
   const [filterMode, setFilterMode] = useState<'today'|'week'|'month'|'custom'>('today');
   const [customStart, setCustomStart] = useState<string>(new Date().toISOString().split('T')[0]);
   const [customEnd, setCustomEnd] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
 
 
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -15,8 +16,9 @@ export default function ReportsView() {
   // Use Dexie live queries with strict tenant filtering
   const sales = useLiveQuery(() => db.sales.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
   const saleItems = useLiveQuery(() => db.sale_items.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
-  const products = useLiveQuery(() => db.products.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
+  const products = useLiveQuery(() => db.products.where('tenant_id').equals(tenantId).filter(p => p.status !== 'deleted').toArray(), [tenantId]) || [];
   const expenses = useLiveQuery(() => db.expenses.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
+  const customers = useLiveQuery(() => db.customers.where('tenant_id').equals(tenantId).toArray(), [tenantId]) || [];
   
   // Apply date filters in memory since array is fast to process client-side
   const filteredSales = useMemo(() => {
@@ -39,6 +41,7 @@ export default function ReportsView() {
       endMs = new Date(customEnd + 'T23:59:59').getTime();
     }
 
+    // Optimization: Pre-sort or filter by date
     return sales.filter(s => s.timestamp >= startMs && s.timestamp <= endMs);
   }, [sales, filterMode, customStart, customEnd]);
 
@@ -79,9 +82,11 @@ export default function ReportsView() {
   const estimatedProfit = useMemo(() => {
     let totalCogs = 0;
     const saleIds = new Set(filteredSales.map(s => s.id));
+    const productMap = new Map(products.map(p => [p.id, p]));
+
     saleItems.forEach(item => {
       if (saleIds.has(item.sale_id)) {
-        const product = products.find(p => p.id === item.product_id);
+        const product = productMap.get(item.product_id);
         if (product) {
           totalCogs += (product.price_cost * item.quantity);
         }
@@ -96,6 +101,40 @@ export default function ReportsView() {
     return products.filter(p => p.stock_current <= p.stock_min);
   }, [products]);
 
+  const productSalesReport = useMemo(() => {
+    const report: Record<string, { product: any, items: any[], totalQty: number, totalValue: number }> = {};
+    const saleMap = new Map(filteredSales.map(s => [s.id, s]));
+    const productMap = new Map(products.map(p => [p.id, p]));
+    const customerMap = new Map(customers.map(c => [c.id, c]));
+    
+    saleItems.forEach(item => {
+      const sale = saleMap.get(item.sale_id);
+      if (sale) {
+        if (!report[item.product_id]) {
+          const product = productMap.get(item.product_id);
+          if (product) {
+            report[item.product_id] = { product, items: [], totalQty: 0, totalValue: 0 };
+          }
+        }
+        
+        if (report[item.product_id]) {
+          const customer = customerMap.get(sale.customer_id);
+          report[item.product_id].items.push({
+            id: item.id,
+            date: sale.timestamp,
+            qty: item.quantity,
+            customerName: customer?.name || 'Não Identificado',
+            total: item.total_item_price
+          });
+          report[item.product_id].totalQty += item.quantity;
+          report[item.product_id].totalValue += item.total_item_price;
+        }
+      }
+    });
+
+    return Object.values(report).sort((a, b) => b.totalValue - a.totalValue);
+  }, [filteredSales, saleItems, products, customers]);
+
 
 
 
@@ -106,15 +145,15 @@ export default function ReportsView() {
   return (
     <div className="report-container responsive-container responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '24px', overflowY: 'auto' }}>
       
-      <header className="hide-on-print responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="hide-on-print responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }}>Gerencial & Caixa</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Métricas, fluxo do dinheiro e exportação.</p>
+          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Gerencial & Caixa</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Métricas, fluxo do dinheiro e exportação.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-primary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Download size={20} />
-            Exportar PDF
+        <div className="responsive-tools">
+
+          <button className="btn-primary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+            <Download size={20} /> Exportar PDF
           </button>
         </div>
       </header>
@@ -196,10 +235,10 @@ export default function ReportsView() {
         <div className="responsive-table-wrapper">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-              <tr>
-                <th style={{ padding: '12px 24px', color: 'var(--text-muted)' }}>Data/Hora</th>
-                <th style={{ padding: '12px 24px', color: 'var(--text-muted)' }}>Método</th>
-                <th style={{ padding: '12px 24px', color: 'var(--text-muted)' }}>Total</th>
+              <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600' }}>DATA/HORA</th>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600' }}>MÉTODO</th>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600' }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -219,12 +258,77 @@ export default function ReportsView() {
       </div>
       </div>
 
+      {/* Relatório por Produto */}
+      <div className="glass-panel print-flatten" style={{ padding: '0', display: 'flex', flexDirection: 'column', marginTop: '24px' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <TrendingUp color="var(--success)" />
+          <h3 style={{ fontSize: '18px' }}>Relatório de Vendas por Produto (Agrupado)</h3>
+        </div>
+        <div className="responsive-table-wrapper">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+              <tr>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6 }}>PRODUTO</th>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6 }}>TOTAL QTD</th>
+                <th style={{ padding: '12px 24px', color: 'var(--text-primary)', opacity: 0.6 }}>TOTAL VALOR</th>
+                <th style={{ width: '50px' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {productSalesReport.map((group) => (
+                <Fragment key={group.product.id}>
+                  <tr 
+                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', background: expandedProduct === group.product.id ? 'var(--surface-glass-light)' : 'transparent' }}
+                    onClick={() => setExpandedProduct(expandedProduct === group.product.id ? null : group.product.id)}
+                  >
+                    <td style={{ padding: '16px 24px', fontWeight: '700' }}>{group.product.name}</td>
+                    <td style={{ padding: '16px 24px' }}>{group.totalQty} {group.product.unit_type}</td>
+                    <td style={{ padding: '16px 24px', color: 'var(--success)', fontWeight: 'bold' }}>R$ {group.totalValue.toFixed(2)}</td>
+                    <td style={{ padding: '16px 24px' }}>
+                      {expandedProduct === group.product.id ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    </td>
+                  </tr>
+                  {expandedProduct === group.product.id && (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '0 0 24px 24px', background: 'var(--surface-glass-dark)' }}>
+                        <div style={{ borderLeft: '3px solid var(--accent-primary)', paddingLeft: '20px', marginTop: '12px', overflowX: 'auto' }}>
+                          <table style={{ width: '100%', fontSize: '14px' }}>
+                             <thead>
+                               <tr style={{ color: 'var(--text-muted)' }}>
+                                 <th style={{ padding: '8px 0', textAlign: 'left' }}>Data/Hora</th>
+                                 <th style={{ padding: '8px 0', textAlign: 'left' }}>Cliente</th>
+                                 <th style={{ padding: '8px 0', textAlign: 'left' }}>Qtd</th>
+                                 <th style={{ padding: '8px 0', textAlign: 'right', paddingRight: '24px' }}>Total</th>
+                               </tr>
+                             </thead>
+                             <tbody>
+                               {group.items.sort((a,b) => b.date - a.date).map(item => (
+                                 <tr key={item.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                   <td style={{ padding: '8px 0' }}>{new Date(item.date).toLocaleString()}</td>
+                                   <td style={{ padding: '8px 0' }}>{item.customerName}</td>
+                                   <td style={{ padding: '8px 0' }}>{item.qty}</td>
+                                   <td style={{ padding: '8px 0', textAlign: 'right', paddingRight: '24px', fontWeight: '600' }}>R$ {item.total.toFixed(2)}</td>
+                                 </tr>
+                               ))}
+                             </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
 
     </div>
   );
 }
 
-const FilterBtn = ({ active, onClick, label }: any) => (
+const FilterBtn = ({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) => (
   <button 
     onClick={onClick}
     style={{
@@ -241,9 +345,8 @@ const FilterBtn = ({ active, onClick, label }: any) => (
   </button>
 );
 
-const MetricCard = ({ title, value, highlight, danger, success, sub, icon, isCount }: any) => {
+const MetricCard = ({ title, value, highlight, danger, success, sub, icon, isCount }: { title: string, value: number, highlight?: boolean, danger?: boolean, success?: boolean, sub?: string, icon?: React.ReactNode, isCount?: boolean }) => {
   let color = 'var(--text-primary)';
-  let bg = 'var(--surface-primary)';
   if (highlight) {
     color = 'var(--accent-primary)';
     bg = 'var(--bg-secondary)';
@@ -256,13 +359,23 @@ const MetricCard = ({ title, value, highlight, danger, success, sub, icon, isCou
   }
 
   return (
-    <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '4px', background: bg, position: 'relative', overflow: 'hidden' }}>
-      {icon && <div style={{ position: 'absolute', top: '16px', right: '16px', opacity: 0.2, color }}>{icon}</div>}
-      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', zIndex: 1 }}>{title}</div>
-      <div style={{ fontSize: '24px', fontWeight: '900', color, zIndex: 1 }}>
+    <div className="glass-panel" style={{ 
+      padding: '24px', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '8px', 
+      background: highlight ? 'var(--surface-primary)' : 'rgba(255,255,255,0.03)', 
+      position: 'relative', 
+      overflow: 'hidden',
+      border: highlight ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+      boxShadow: highlight ? '0 8px 32px rgba(96, 165, 250, 0.15)' : 'none'
+    }}>
+      {icon && <div style={{ position: 'absolute', top: '16px', right: '16px', opacity: 0.4, color }}>{icon}</div>}
+      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</div>
+      <div style={{ fontSize: '28px', fontWeight: '900', color: highlight ? 'var(--text-primary)' : color, textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
         {isCount ? value : `R$ ${value.toFixed(2)}`}
       </div>
-      {sub && <div style={{ fontSize: '10px', color: 'var(--text-muted)', zIndex: 1, marginTop: '4px' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>{sub}</div>}
     </div>
   );
 };

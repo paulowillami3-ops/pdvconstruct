@@ -33,6 +33,10 @@ export default function CheckoutScreen() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const [isNewCustomerModalVisible, setIsNewCustomerModalVisible] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newCpf, setNewCpf] = useState('');
   
   const { user } = useAuth();
   const router = useRouter();
@@ -48,6 +52,43 @@ export default function CheckoutScreen() {
     c.cpf.includes(customerSearch)
   );
 
+  const handleCreateCustomer = async () => {
+    if (!newName || !newPhone) {
+      Alert.alert('Erro', 'Nome e Telefone são obrigatórios.');
+      return;
+    }
+
+    try {
+      let createdCustomer: Customer | null = null;
+      await database.write(async () => {
+        createdCustomer = await database.get<Customer>('customers').create(c => {
+          c.name = newName;
+          c.phone = newPhone;
+          c.cpf = newCpf;
+          c.creditLimit = 1000; // Default limit
+          c.balanceOwed = 0;
+          c.status = 'active';
+        });
+      });
+
+      if (createdCustomer) {
+        setSelectedCustomer(createdCustomer);
+        setIsNewCustomerModalVisible(false);
+        setShowCustomerPicker(false);
+        setNewName('');
+        setNewPhone('');
+        setNewCpf('');
+        // Refresh customer list
+        const updated = await database.get<Customer>('customers').query().fetch();
+        setAllCustomers(updated);
+        Alert.alert('Sucesso', 'Cliente cadastrado e selecionado!');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Não foi possível cadastrar o cliente.');
+    }
+  };
+
   const confirmSale = async () => {
     if (loading) return;
 
@@ -57,7 +98,23 @@ export default function CheckoutScreen() {
       return;
     }
 
-    // Validation: Credit Limit
+    if (!selectedCustomer) {
+      Alert.alert(
+        'Vincular Cliente',
+        'Deseja vincular um cliente a esta venda para registro no relatório?',
+        [
+          { text: 'Vincular Agora', onPress: () => setShowCustomerPicker(true) },
+          { text: 'Não Vincular', onPress: () => processSale() },
+          { text: 'Cancelar', style: 'cancel' }
+        ]
+      );
+    } else {
+      processSale();
+    }
+  };
+
+  const processSale = async () => {
+    // Validation: Credit Limit (Already covered for credit in confirmSale, but including logic here for completeness)
     if (paymentMethod === 'credit' && selectedCustomer) {
       const newBalance = selectedCustomer.balanceOwed + total;
       if (newBalance > selectedCustomer.creditLimit) {
@@ -138,7 +195,7 @@ export default function CheckoutScreen() {
         
         {/* Customer Selector */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cliente (Obrigatório para Fiado)</Text>
+          <Text style={styles.sectionTitle}>Vincular Cliente (Opcional)</Text>
           <TouchableOpacity 
             style={[styles.customerPicker, selectedCustomer && styles.customerPickerActive]}
             onPress={() => setShowCustomerPicker(true)}
@@ -215,7 +272,16 @@ export default function CheckoutScreen() {
       {showCustomerPicker && (
         <View style={styles.overlay}>
           <View style={styles.overlayContent}>
-            <Text style={styles.overlayTitle}>Selecionar Cliente</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={styles.overlayTitle}>Selecionar Cliente</Text>
+              <TouchableOpacity 
+                style={styles.quickAddBtn}
+                onPress={() => setIsNewCustomerModalVisible(true)}
+              >
+                <IconSymbol name="person.badge.plus" size={20} color="#3B82F6" />
+                <Text style={styles.quickAddText}>Novo</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput 
               style={styles.overlayInput}
               placeholder="Buscar Cliente..."
@@ -248,6 +314,49 @@ export default function CheckoutScreen() {
           </View>
         </View>
       )}
+
+      {/* Quick Customer Create Modal */}
+      <Modal visible={isNewCustomerModalVisible} transparent animationType="fade">
+        <View style={styles.modalBg}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Cadastrar Cliente</Text>
+            <Text style={styles.modalSubtitle}>Preencha os dados básicos</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Nome Completo"
+              placeholderTextColor="#64748B"
+              value={newName}
+              onChangeText={setNewName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Telefone"
+              placeholderTextColor="#64748B"
+              keyboardType="phone-pad"
+              value={newPhone}
+              onChangeText={setNewPhone}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="CPF (Opcional)"
+              placeholderTextColor="#64748B"
+              keyboardType="numeric"
+              value={newCpf}
+              onChangeText={setNewCpf}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setIsNewCustomerModalVisible(false)}>
+                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleCreateCustomer}>
+                <Text style={styles.modalConfirmBtnText}>Cadastrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -266,6 +375,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#F8FAFC',
     marginBottom: 24,
+  },
+  quickAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F640',
+  },
+  quickAddText: {
+    color: '#3B82F6',
+    fontWeight: '700',
+    fontSize: 14,
   },
   section: {
     marginBottom: 24,
@@ -454,5 +579,64 @@ const styles = StyleSheet.create({
     color: '#F87171',
     fontWeight: '700',
     fontSize: 16,
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 16,
+    color: '#F8FAFC',
+    fontSize: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalCancelBtnText: {
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalConfirmBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
   },
 });

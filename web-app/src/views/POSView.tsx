@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../database/db';
-import { Search, ShoppingCart, Trash2, Plus, Minus, RefreshCcw, Truck, MapPin, DollarSign, Info, FileText } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, RefreshCcw, Truck, MapPin, DollarSign, Info, FileText, UserPlus, Phone, User, X } from 'lucide-react';
 import { generatePixPayload } from '../utils/pix';
 
 interface CartItem {
@@ -21,6 +21,10 @@ export default function POSView() {
   const [isReturnMode, setIsReturnMode] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split('T')[0]);
   const [showPixModal, setShowPixModal] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', cpf: '' });
+  const [showCustomerPrompt, setShowCustomerPrompt] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState(0);
   
   // Custom Alert Modal
   const [alertBox, setAlertBox] = useState<{message: string, isError: boolean} | null>(null);
@@ -34,6 +38,7 @@ export default function POSView() {
     customerName?: string,
     deliveryAddress?: string,
     deliveryFee?: number,
+    discountAmount?: number,
     date: Date
   } | null>(null);
 
@@ -81,7 +86,7 @@ export default function POSView() {
     if (!pixKey) return '';
     const payload = generatePixPayload({
       key: pixKey.trim(),
-      type: pixKeyType as any,
+      type: pixKeyType as 'cpf' | 'cnpj' | 'email' | 'phone' | 'random',
       txid: pixId,
       amount: amt
     });
@@ -128,22 +133,63 @@ export default function POSView() {
 
   const removeFromCart = (id: string) => setCart(prev => prev.filter(item => item.product.id !== id));
 
-  const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const feeValueForDisplay = isDelivery ? parseFloat(deliveryFee) || 0 : 0;
+  const discountAmountForDisplay = subtotal * (discountPercent / 100);
+  const total = subtotal - discountAmountForDisplay + feeValueForDisplay;
+
+  const handleCreateQuickCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomerData.name) return;
+    try {
+      const newId = crypto.randomUUID();
+      await db.customers.add({
+        id: newId,
+        tenant_id: tenantId,
+        synced: false,
+        name: newCustomerData.name,
+        phone: newCustomerData.phone,
+        cpf: newCustomerData.cpf,
+        credit_limit: 999999, // High limit for bypass as we are removing the feature check anyway
+        balance_owed: 0,
+        status: 'active',
+        created_at: Date.now()
+      });
+      setSelectedCustomerId(newId);
+      setIsCustomerModalOpen(false);
+      setNewCustomerData({ name: '', phone: '', cpf: '' });
+    } catch (err) {
+      console.error(err);
+      setAlertBox({ message: 'Erro ao cadastrar cliente.', isError: true });
+    }
+  };
 
 
   const handleCheckout = async () => {
     if (cart.length === 0) return setAlertBox({message: 'O Carrinho está vazio.', isError: true});
     
+    // Check if customer is selected
+    if (!selectedCustomerId && paymentMethod !== 'fiado') {
+      setShowCustomerPrompt(true);
+      return;
+    }
+
+    await performCheckout();
+  };
+
+  const performCheckout = async () => {
+    setShowCustomerPrompt(false);
     const subtotalCost = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const feeValue = isDelivery ? parseFloat(deliveryFee) || 0 : 0;
-    const finalTotal = isReturnMode ? -subtotalCost : subtotalCost + feeValue;
+    
+    // Precision rounding for money calculations
+    const roundMoney = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
+
+    const discountAmount = roundMoney(subtotalCost * (discountPercent / 100));
+    const finalTotal = isReturnMode ? -roundMoney(subtotalCost) : roundMoney((subtotalCost - discountAmount) + feeValue);
 
     if (paymentMethod === 'fiado') {
       if (!selectedCustomerId) return setAlertBox({message: 'Selecione um cliente para vender no Fiado.', isError: true});
-      const customer = customers.find(c => c.id === selectedCustomerId);
-      if (customer && (customer.balance_owed + finalTotal > customer.credit_limit)) {
-        return setAlertBox({message: `Limite de crédito excedido para: ${customer.name}.`, isError: true});
-      }
     }
 
     try {
@@ -154,6 +200,7 @@ export default function POSView() {
 
       await db.transaction('rw', [db.sales, db.sale_items, db.products, db.customers, db.deliveries, db.stock_logs], async () => {
         const saleId = crypto.randomUUID();
+        const now = Date.now();
         
         await db.sales.add({
           id: saleId,
@@ -165,8 +212,8 @@ export default function POSView() {
           status: 'completed',
           is_delivery: isDelivery,
           delivery_fee: feeValue,
-          timestamp: Date.now(),
-          created_at: Date.now()
+          timestamp: now,
+          created_at: now
         });
 
         if (isDelivery) {
@@ -178,7 +225,7 @@ export default function POSView() {
             address: deliveryAddress,
             fee: feeValue,
             status: 'pending',
-            schedule_date: new Date(scheduleDate).getTime()
+            schedule_date: new Date(scheduleDate + 'T12:00:00').getTime() // Use midday to avoid TZ offset issues
           });
         }
 
@@ -190,7 +237,7 @@ export default function POSView() {
           product_id: item.product.id,
           quantity: item.quantity,
           unit_price: item.price,
-          total_item_price: item.price * item.quantity
+          total_item_price: roundMoney(item.price * item.quantity)
         }));
 
         await db.sale_items.bulkAdd(itemsToAdd);
@@ -200,7 +247,7 @@ export default function POSView() {
           if (product) {
             const stockChange = isReturnMode ? item.quantity : -item.quantity;
             await db.products.update(item.product.id, {
-              stock_current: product.stock_current + stockChange
+              stock_current: roundMoney(product.stock_current + stockChange)
             });
 
             await db.stock_logs.add({
@@ -211,7 +258,7 @@ export default function POSView() {
               change_amount: stockChange,
               type: isReturnMode ? 'return' : 'sale',
               notes: `Venda ref: ${saleId.slice(0,8)}`,
-              timestamp: Date.now()
+              timestamp: now
             });
           }
         }
@@ -220,7 +267,7 @@ export default function POSView() {
           const customer = await db.customers.get(selectedCustomerId);
           if (customer) {
             await db.customers.update(selectedCustomerId, {
-              balance_owed: customer.balance_owed + finalTotal
+              balance_owed: roundMoney(customer.balance_owed + finalTotal)
             });
           }
         }
@@ -235,6 +282,7 @@ export default function POSView() {
         customerName: customer ? customer.name : undefined,
         deliveryAddress: isDelivery ? deliveryAddress : undefined,
         deliveryFee: feeValue,
+        discountAmount: discountAmount,
         date: new Date()
       });
       
@@ -245,6 +293,7 @@ export default function POSView() {
       setDeliveryFee('0');
       setIsReturnMode(false);
       setShowPixModal(false);
+      setDiscountPercent(0);
     } catch (e) {
         console.error(e);
         setAlertBox({message: 'Erro interno ao processar a venda.', isError: true});
@@ -403,19 +452,51 @@ export default function POSView() {
             </div>
           )}
 
-          {paymentMethod === 'fiado' && (
+          <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--surface-light)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Desconto (%)</label>
+              <div style={{ position: 'relative' }}>
+                <RefreshCcw size={14} style={{ position: 'absolute', top: '10px', left: '10px', color: 'var(--accent-primary)' }} />
+                <input 
+                  type="number" 
+                  className="input-glass" 
+                  style={{ paddingLeft: '32px', fontSize: '14px' }} 
+                  placeholder="0" 
+                  min="0"
+                  max="100"
+                  value={discountPercent} 
+                  onChange={e => setDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))} 
+                />
+              </div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Vlr. Desconto</div>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>R$ {(subtotal * (discountPercent / 100)).toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Vincular Cliente (Opcional)</label>
+              <button 
+                onClick={() => setIsCustomerModalOpen(true)}
+                style={{ fontSize: '12px', color: 'var(--accent-primary)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <UserPlus size={14} /> Novo
+              </button>
+            </div>
             <select 
               className="input-glass" 
               value={selectedCustomerId} 
               onChange={e => setSelectedCustomerId(e.target.value)}
-              style={{ marginBottom: '16px' }}
+              style={{ width: '100%' }}
             >
-              <option value="" style={{ color: 'black' }}>Selecione o Cliente (Obrigatório)...</option>
+              <option value="" style={{ background: '#0f172a', color: 'white' }}>{paymentMethod === 'fiado' ? 'Selecione o Cliente (Obrigatório)...' : 'Consumidor Avulso'}</option>
               {customers.map(c => (
-                <option key={c.id} value={c.id} style={{ color: 'black' }}>{c.name} - CPF: {c.cpf}</option>
+                <option key={c.id} value={c.id} style={{ background: '#0f172a', color: 'white' }}>{c.name} {c.cpf ? `(${c.cpf})` : ''}</option>
               ))}
             </select>
-          )}
+          </div>
 
           <button className="btn-primary" style={{ width: '100%', fontSize: '18px', padding: '16px' }} onClick={handleCheckout}>
             Finalizar Venda (Enter)
@@ -523,6 +604,13 @@ export default function POSView() {
             </div>
           )}
 
+          {receiptData.discountAmount !== undefined && receiptData.discountAmount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '1mm' }}>
+              <span>Desconto ({((receiptData.discountAmount / (receiptData.total + receiptData.discountAmount - (receiptData.deliveryFee || 0))) * 100).toFixed(0)}%):</span>
+              <span>- R$ {receiptData.discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginBottom: '2mm' }}>
             <span>TOTAL</span>
             <span>R$ {receiptData.total.toFixed(2)}</span>
@@ -552,6 +640,70 @@ export default function POSView() {
 
           <div style={{ textAlign: 'center', marginTop: '6mm', fontSize: '10px' }}>
             Obrigado e volte sempre!
+          </div>
+        </div>
+      )}
+
+
+      {isCustomerModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 120 }}>
+          <div className="glass-panel responsive-modal" style={{ width: '400px', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '20px' }}>Novo Cliente</h3>
+              <button 
+                onClick={() => setIsCustomerModalOpen(false)} 
+                style={{ background: 'var(--surface-light)', borderRadius: '50%', padding: '6px', cursor: 'pointer' }}
+              >
+                <X size={18} color="var(--text-muted)" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateQuickCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>Nome Completo</label>
+                <div style={{ position: 'relative' }}>
+                  <User size={18} style={{ position: 'absolute', top: '12px', left: '12px', color: 'var(--text-muted)' }} />
+                  <input required autoFocus className="input-glass" style={{ paddingLeft: '40px' }} placeholder="Nome do cliente" value={newCustomerData.name} onChange={e => setNewCustomerData({...newCustomerData, name: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>Telefone</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={18} style={{ position: 'absolute', top: '12px', left: '12px', color: 'var(--text-muted)' }} />
+                  <input className="input-glass" style={{ paddingLeft: '40px' }} placeholder="(00) 00000-0000" value={newCustomerData.phone} onChange={e => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>CPF (Opcional)</label>
+                <div style={{ position: 'relative' }}>
+                  <FileText size={18} style={{ position: 'absolute', top: '12px', left: '12px', color: 'var(--text-muted)' }} />
+                  <input className="input-glass" style={{ paddingLeft: '40px' }} placeholder="000.000.000-00" value={newCustomerData.cpf} onChange={e => setNewCustomerData({...newCustomerData, cpf: e.target.value})} />
+                </div>
+              </div>
+              <button className="btn-primary" type="submit" style={{ marginTop: '8px', padding: '12px' }}>Cadastrar e Selecionar</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCustomerPrompt && (
+        <div className="modal-overlay" style={{ zIndex: 121 }}>
+          <div className="glass-panel responsive-modal" style={{ width: '400px', padding: '32px', textAlign: 'center' }}>
+            <User color="var(--accent-primary)" size={48} style={{ marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '22px', marginBottom: '12px' }}>Vincular Cliente?</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+              Nenhum cliente está selecionado. Deseja vincular um cliente a esta venda para o relatório?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button className="btn-primary" onClick={() => setShowCustomerPrompt(false)}>
+                Vincular Cliente
+              </button>
+              <button className="btn-secondary" onClick={performCheckout}>
+                Finalizar sem Cliente
+              </button>
+              <button className="btn-secondary" style={{ background: 'transparent', border: 'none' }} onClick={() => setShowCustomerPrompt(false)}>
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

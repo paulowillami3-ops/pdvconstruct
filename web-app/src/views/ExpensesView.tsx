@@ -106,65 +106,67 @@ const ExpensesView: React.FC = () => {
     <div className="responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '32px' }}>
       
       {/* Header com busca e botão */}
-      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
           <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Contas a Pagar</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>Controle suas despesas, aluguel e fornecedores.</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Controle suas despesas, aluguel e fornecedores.</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div style={{ position: 'relative', width: '300px' }}>
-            <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-muted)' }} size={18} />
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', maxWidth: 'fit-content' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '240px' }}>
+            <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-secondary)' }} size={18} />
             <input 
               className="input-glass" 
-              placeholder="Buscar despesa..." 
-              style={{ paddingLeft: '48px' }}
+              placeholder="Buscar..." 
+              style={{ paddingLeft: '48px', width: '100%' }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowModal(true)}>
-            <Plus size={20} /> Nova Despesa
-          </button>
+          <div className="responsive-tools">
+            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }} onClick={() => setShowModal(true)}>
+              <Plus size={20} /> Nova Despesa
+            </button>
+          </div>
         </div>
       </header>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--danger)' }}>
+        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--danger)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Total Pendente</p>
+            <p style={{ color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', margin: 0, fontWeight: '600' }}>Total Pendente</p>
             <Clock size={20} color="var(--danger)" />
           </div>
-          <p style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: 'var(--danger)' }}>
+          <p style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: '#FFFFFF', textShadow: '0 0 20px rgba(239, 68, 68, 0.3)' }}>
             R$ {totals.pending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
 
-        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--success)' }}>
+        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--success)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Total Pago</p>
+            <p style={{ color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', margin: 0, fontWeight: '600' }}>Total Pago</p>
             <CheckCircle size={20} color="var(--success)" />
           </div>
-          <p style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: 'var(--success)' }}>
+          <p style={{ fontSize: '28px', fontWeight: '800', margin: 0, color: '#FFFFFF', textShadow: '0 0 20px rgba(16, 185, 129, 0.3)' }}>
             R$ {totals.paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
 
-        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--primary)' }}>
+        <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--primary)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Filtro de Status</p>
-            <Filter size={18} color="var(--text-muted)" />
+            <p style={{ color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', margin: 0, fontWeight: '600' }}>Filtro de Status</p>
+            <Filter size={18} color="var(--primary)" />
           </div>
           <select 
             className="input-glass"
-            style={{ padding: '8px', border: 'none', background: 'transparent', width: '100%', fontWeight: '600', cursor: 'pointer' }}
+            style={{ padding: '8px', border: 'none', background: 'transparent', width: '100%', fontWeight: '600', cursor: 'pointer', color: 'white' }}
             value={filter}
             onChange={e => setFilter(e.target.value as any)}
           >
-            <option value="all">Todas as Contas</option>
-            <option value="pending">Somente Pendentes</option>
-            <option value="paid">Somente Pagas</option>
+            <option value="all" style={{ color: 'white' }}>Todas as Contas</option>
+            <option value="pending" style={{ color: 'white' }}>Somente Pendentes</option>
+            <option value="paid" style={{ color: 'white' }}>Somente Pagas</option>
           </select>
         </div>
       </div>
@@ -175,12 +177,12 @@ const ExpensesView: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 10 }}>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>STATUS</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>DESCRIÇÃO</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>CATEGORIA</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>VENCIMENTO</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>VALOR</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>AÇÕES</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>STATUS</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>DESCRIÇÃO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>CATEGORIA</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>VENCIMENTO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>VALOR</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>
@@ -303,11 +305,12 @@ const ExpensesView: React.FC = () => {
                   className="input-glass"
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
+                  style={{ color: 'white' }}
                 >
-                  <option value="fixa">Fixa (Mensal)</option>
-                  <option value="variavel">Variável / Emergência</option>
-                  <option value="fornecedor">Fornecedores / Matéria-prima</option>
-                  <option value="pessoal">Pró-labore e Salários</option>
+                  <option value="fixa" style={{ color: 'white' }}>Fixa (Mensal)</option>
+                  <option value="variavel" style={{ color: 'white' }}>Variável / Emergência</option>
+                  <option value="fornecedor" style={{ color: 'white' }}>Fornecedores / Matéria-prima</option>
+                  <option value="pessoal" style={{ color: 'white' }}>Pró-labore e Salários</option>
                 </select>
               </div>
 

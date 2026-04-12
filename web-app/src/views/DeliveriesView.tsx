@@ -14,6 +14,12 @@ export default function DeliveriesView() {
     driver_id: '',
     vehicle: ''
   });
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newDelivery, setNewDelivery] = useState({
+    address: '',
+    schedule_date: new Date().toISOString().split('T')[0],
+    fee: '0.00'
+  });
 
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const tenantId = currentUser.tenant_id;
@@ -57,19 +63,21 @@ export default function DeliveriesView() {
 
     const loadId = crypto.randomUUID();
     
-    await db.shipment_loads.add({
-      id: loadId,
-      tenant_id: tenantId,
-      synced: false,
-      driver_id: loadForm.driver_id,
-      vehicle_license: loadForm.vehicle,
-      status: 'preparing',
-      created_at: Date.now()
-    });
+    await db.transaction('rw', [db.shipment_loads, db.deliveries], async () => {
+      await db.shipment_loads.add({
+        id: loadId,
+        tenant_id: tenantId,
+        synced: false,
+        driver_id: loadForm.driver_id,
+        vehicle_license: loadForm.vehicle,
+        status: 'preparing',
+        created_at: Date.now()
+      });
 
-    for (const dId of selectedIds) {
-      await db.deliveries.update(dId, { load_id: loadId, status: 'shipped' });
-    }
+      for (const dId of selectedIds) {
+        await db.deliveries.update(dId, { load_id: loadId, status: 'shipped' });
+      }
+    });
 
     setSelectedIds([]);
     setShowLoadModal(false);
@@ -153,48 +161,73 @@ export default function DeliveriesView() {
   return (
     <div className="responsive-view overflow-auto" style={{ padding: '32px', gap: '32px', height: '100%' }}>
       
-      <header className="responsive-header mb-8" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }} className="flex items-center gap-3">
-            <Truck size={32} className="text-blue-400" /> Logística e Entregas
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>Crie romaneios e monitore as rotas dos motoristas.</p>
+      <header className="mb-8" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }} className="flex items-center gap-3">
+              <Truck size={32} className="text-blue-400" /> Logística e Entregas
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Crie romaneios e monitore as rotas dos motoristas.</p>
+          </div>
+
+          <div className="responsive-tools" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button 
+              className="btn-primary" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <Plus size={20} /> Nova Entrega
+            </button>
+            
+            <select 
+              className="input-glass" 
+              style={{ minWidth: '150px', height: '48px' }}
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as any)}
+            >
+              <option value="pending" style={{ color: 'white' }}>Pendentes</option>
+              <option value="delivered" style={{ color: 'white' }}>Entregues</option>
+              <option value="all" style={{ color: 'white' }}>Todas</option>
+            </select>
+
+            {selectedIds.length > 0 && (
+              <button 
+                onClick={() => setShowLoadModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <Plus size={20} /> Montar Romaneio ({selectedIds.length})
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Forecast Summary Cards */}
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
           {[
-            { label: 'Hoje', date: new Date().toLocaleDateString(), count: deliveries.filter(d => new Date(d.schedule_date).toLocaleDateString() === new Date().toLocaleDateString()).length },
-            { label: 'Amanhã', date: new Date(Date.now() + 86400000).toLocaleDateString(), count: deliveries.filter(d => new Date(d.schedule_date).toLocaleDateString() === new Date(Date.now() + 86400000).toLocaleDateString()).length },
-            { label: 'Próximos 7 dias', count: deliveries.filter(d => d.schedule_date > Date.now() && d.schedule_date < Date.now() + 7 * 86400000).length }
+            { label: 'Hoje', date: new Date().toLocaleDateString(), count: deliveries.filter(d => {
+              const d1 = new Date(d.schedule_date);
+              const d2 = new Date();
+              return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+            }).length },
+            { label: 'Amanhã', date: new Date(Date.now() + 86400000).toLocaleDateString(), count: deliveries.filter(d => {
+              const d1 = new Date(d.schedule_date);
+              const d2 = new Date(Date.now() + 86400000);
+              return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+            }).length },
+            { label: 'Próximos 7 dias', count: deliveries.filter(d => {
+              const now = new Date();
+              now.setHours(0,0,0,0);
+              const nextWeek = new Date(now.getTime() + 7 * 86400000 + 86400000);
+              return d.schedule_date >= now.getTime() && d.schedule_date < nextWeek.getTime();
+            }).length }
           ].map((card, i) => (
-            <div key={i} className="glass-panel" style={{ padding: '12px 20px', minWidth: '140px', borderLeft: '3px solid var(--accent-primary)' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>{card.label}</div>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>{card.count}</div>
-              {card.date && <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{card.date}</div>}
+            <div key={i} className="glass-panel" style={{ padding: '16px 20px', flex: '1', minWidth: '200px', borderLeft: '3px solid var(--accent-primary)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700', letterSpacing: '0.05em' }}>{card.label}</div>
+              <div style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)' }}>{card.count}</div>
+              {card.date && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>{card.date}</div>}
             </div>
           ))}
-        </div>
-        
-        <div style={{ display: 'flex', gap: '12px' }}>
-          {selectedIds.length > 0 && (
-            <button 
-              onClick={() => setShowLoadModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
-            >
-              <Plus size={20} /> Montar Romaneio ({selectedIds.length})
-            </button>
-          )}
-          <select 
-            className="input-glass" 
-            style={{ width: '200px' }}
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value as any)}
-          >
-            <option value="pending" style={{ color: 'black' }}>Pendentes</option>
-            <option value="delivered" style={{ color: 'black' }}>Entregues</option>
-            <option value="all" style={{ color: 'black' }}>Todas</option>
-          </select>
         </div>
       </header>
 
@@ -280,18 +313,6 @@ export default function DeliveriesView() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: d.status === 'delivered' ? 'var(--success)' : 'var(--accent-primary)' }}>
                           {d.status === 'delivered' ? <CheckCircle size={20} /> : <Clock size={20} />}
-                          <span style={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase' }}>
-                            {d.status === 'pending' ? (d.load_id ? 'Em Romaneio' : 'Pendente') : 'Entregue'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Ref: {d.sale_id.slice(0, 8).toUpperCase()}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                        <MapPin size={22} style={{ color: 'var(--text-muted)', marginTop: '2px' }} />
-                        <div>
                           <div style={{ fontWeight: '600', fontSize: '15px' }}>{d.address || 'Sem endereço'}</div>
                         </div>
                       </div>
@@ -342,7 +363,7 @@ export default function DeliveriesView() {
                 >
                   <option value="">Selecione um motorista...</option>
                   {drivers.map(d => (
-                    <option key={d.id} value={d.id} className="text-black">{d.name}</option>
+                    <option key={d.id} value={d.id} style={{ color: 'white' }}>{d.name}</option>
                   ))}
                 </select>
               </div>
@@ -359,6 +380,72 @@ export default function DeliveriesView() {
               
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 mt-6">
                 Gerar e Enviar para Painel do Motorista
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Plus className="text-blue-400"/> Agendar Entrega</h2>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-white"><X /></button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!tenantId) return;
+              await db.deliveries.add({
+                id: crypto.randomUUID(),
+                tenant_id: tenantId,
+                synced: false,
+                sale_id: 'MANUAL',
+                address: newDelivery.address,
+                schedule_date: new Date(newDelivery.schedule_date).getTime(),
+                fee: Number(newDelivery.fee),
+                status: 'pending'
+              });
+              setIsAddModalOpen(false);
+              setNewDelivery({ address: '', schedule_date: new Date().toISOString().split('T')[0], fee: '0.00' });
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Endereço de Entrega</label>
+                <input 
+                  required
+                  placeholder="Rua, Número, Bairro..."
+                  className="input-glass w-full"
+                  value={newDelivery.address}
+                  onChange={e => setNewDelivery({...newDelivery, address: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Data Programada</label>
+                  <input 
+                    required
+                    type="date"
+                    className="input-glass w-full"
+                    value={newDelivery.schedule_date}
+                    onChange={e => setNewDelivery({...newDelivery, schedule_date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Taxa de Frete (R$)</label>
+                  <input 
+                    required
+                    type="number"
+                    step="0.01"
+                    className="input-glass w-full"
+                    value={newDelivery.fee}
+                    onChange={e => setNewDelivery({...newDelivery, fee: e.target.value})}
+                  />
+                </div>
+              </div>
+              
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-6">
+                Confirmar Agendamento
               </button>
             </form>
           </div>

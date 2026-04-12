@@ -9,7 +9,7 @@ export default function InventoryView() {
   const tenantId = currentUser?.tenant_id;
 
   const products = useLiveQuery(
-    () => tenantId ? db.products.where('tenant_id').equals(tenantId).toArray() : []
+    () => tenantId ? db.products.where('tenant_id').equals(tenantId).filter(p => p.status !== 'deleted').toArray() : []
   , [tenantId]) || [];
 
   const suppliers = useLiveQuery(
@@ -39,7 +39,7 @@ export default function InventoryView() {
     conversion_factor: '1'
   });
 
-  const openNewModal = () => {
+  const openAddModal = () => {
     setEditingProductId(null);
     setFormData({ 
       name: '', 
@@ -134,31 +134,35 @@ export default function InventoryView() {
 
   const executeDelete = async () => {
     if (!productToDelete) return;
-    await db.products.delete(productToDelete.id);
+    await db.products.update(productToDelete.id, { 
+      status: 'deleted',
+      synced: false 
+    });
     setProductToDelete(null);
   };
 
   return (
     <>
     <div className="responsive-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '32px', gap: '32px' }}>
-      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header className="responsive-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)' }}>Estoque Atual</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Lista de produtos cadastrados.</p>
+          <h2 style={{ fontSize: '32px', color: 'var(--text-primary)', margin: 0 }}>Estoque Atual</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Lista de produtos cadastrados.</p>
         </div>
-        <button className="btn-primary" style={{ display: 'flex', gap: '8px', alignItems: 'center' }} onClick={openNewModal}>
-          <Plus size={20} />
-          Novo Item
-        </button>
+        <div className="responsive-tools">
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', justifyContent: 'center' }} onClick={openAddModal}>
+            <Plus size={20} /> Novo Produto
+          </button>
+        </div>
       </header>
 
-      <div className="glass-panel" style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <Search color="var(--text-muted)" />
+      <div style={{ position: 'relative' }}>
+        <Search style={{ position: 'absolute', top: '12px', left: '16px', color: 'var(--text-secondary)' }} size={20} />
         <input 
           type="text" 
-          placeholder="Pesquisar por nome ou código de barras..." 
           className="input-glass" 
-          style={{ border: 'none', padding: '8px 0', fontSize: '16px' }}
+          style={{ paddingLeft: '48px', width: '100%' }}
+          placeholder="Pesquisar por nome ou código de barras..." 
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -169,11 +173,11 @@ export default function InventoryView() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
               <tr>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Produto & Codigo</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Custo</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Venda</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600' }}>Quantidade Atual</th>
-                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: '600', width: '120px' }}>Ações</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>PRODUTO & CODIGO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>CUSTO</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>VENDA</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)' }}>QUANTIDADE</th>
+                <th style={{ padding: '16px 24px', color: 'var(--text-primary)', opacity: 0.6, fontWeight: '600', fontSize: '13px', borderBottom: '1px solid var(--border-color)', width: '120px' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>
@@ -280,11 +284,11 @@ export default function InventoryView() {
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Unidade de Venda</label>
                   <select className="input-glass" style={{ cursor: 'pointer' }} value={formData.sale_unit} onChange={e => setFormData({...formData, sale_unit: e.target.value, unit_type: e.target.value})}>
-                    <option value="unidade" style={{ color: '#000' }}>Unidade (un)</option>
-                    <option value="saco" style={{ color: '#000' }}>Saco</option>
-                    <option value="kg" style={{ color: '#000' }}>Peso (kg)</option>
-                    <option value="m" style={{ color: '#000' }}>Metro (m)</option>
-                    <option value="m2" style={{ color: '#000' }}>Metro Q. (m²)</option>
+                    <option value="unidade" style={{ color: 'white' }}>Unidade (un)</option>
+                    <option value="saco" style={{ color: 'white' }}>Saco</option>
+                    <option value="kg" style={{ color: 'white' }}>Peso (kg)</option>
+                    <option value="m" style={{ color: 'white' }}>Metro (m)</option>
+                    <option value="m2" style={{ color: 'white' }}>Metro Q. (m²)</option>
                   </select>
                 </div>
               </div>
@@ -310,9 +314,9 @@ export default function InventoryView() {
                     value={formData.supplier_id} 
                     onChange={e => setFormData({...formData, supplier_id: e.target.value})}
                   >
-                    <option value="" style={{ color: '#000' }}>Nenhum fornecedor selecionado</option>
+                    <option value="" style={{ color: 'white' }}>Nenhum fornecedor selecionado</option>
                     {suppliers.map(s => (
-                      <option key={s.id} value={s.id} style={{ color: '#000' }}>{s.name}</option>
+                      <option key={s.id} value={s.id} style={{ color: 'white' }}>{s.name}</option>
                     ))}
                   </select>
                 </div>
