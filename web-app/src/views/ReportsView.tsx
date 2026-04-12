@@ -349,7 +349,6 @@ const MetricCard = ({ title, value, highlight, danger, success, sub, icon, isCou
   let color = 'var(--text-primary)';
   if (highlight) {
     color = 'var(--accent-primary)';
-    bg = 'var(--bg-secondary)';
   }
   if (danger) {
     color = 'var(--danger)';
