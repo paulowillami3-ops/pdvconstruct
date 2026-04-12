@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Delivery, type User, type ShipmentLoad } from '../database/db';
-import { Truck, MapPin, CheckCircle, Clock, Calendar, Printer, Plus, ClipboardList, X } from 'lucide-react';
+import { Truck, CheckCircle, Clock, Calendar, Printer, Plus, ClipboardList, X } from 'lucide-react';
 
 export default function DeliveriesView() {
   const [filterStatus, setFilterStatus] = useState<'pending' | 'delivered' | 'all'>('pending');

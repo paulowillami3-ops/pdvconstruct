@@ -82,6 +82,7 @@ export const seedDatabase = async (tenantId?: string) => {
       cpf: '123.456.789-00',
       phone: '(11) 98765-4321',
       balance_owed: 1250.50,
+      credit_limit: 5000,
       status: 'active',
       created_at: Date.now()
     },
@@ -92,6 +93,7 @@ export const seedDatabase = async (tenantId?: string) => {
       cpf: '987.654.321-11',
       phone: '(11) 91234-5678',
       balance_owed: 0,
+      credit_limit: 5000,
       status: 'active',
       created_at: Date.now()
     }
