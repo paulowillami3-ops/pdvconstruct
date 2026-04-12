@@ -190,7 +190,7 @@ export default function ReportsView() {
         <MetricCard title="Total Bruto Recebido" value={grandTotal} highlight={true} icon={<TrendingUp size={24} />} />
         <MetricCard title="Lucro Bruto Est." value={estimatedProfit} success={true} icon={<PieChart size={24} />} sub="Vendas - Custos Diretos" />
         <MetricCard title="Despesas Totais" value={totalExpenses} danger={totalExpenses > 0} icon={<AlertCircle size={24} />} sub="Gastos Operacionais" />
-        <MetricCard title="Lucro Real Líquido" value={netProfit} highlight={true} style={{ border: '2px solid var(--accent-primary)' }} icon={<DollarSign size={24} />} sub="Lucro Bruto - Despesas" />
+        <MetricCard title="Lucro Real Líquido" value={netProfit} highlight={true} icon={<DollarSign size={24} />} sub="Lucro Bruto - Despesas" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
